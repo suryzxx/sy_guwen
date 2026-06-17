@@ -20,7 +20,7 @@ export async function loginByWecom() {
     const code = params.get('code')
 
     if (!code) {
-      const redirectUri = `${window.location.origin}${window.location.pathname}`
+      const redirectUri = `${window.location.origin}${import.meta.env.BASE_URL}`
       const { url } = await http.get('/wecom/oauth-url', {
         params: { redirect_uri: redirectUri }
       })
@@ -30,7 +30,7 @@ export async function loginByWecom() {
 
     const data = await http.post('/wecom/login', { code })
     localStorage.setItem('consultant_token', `Bearer ${data.token}`)
-    window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`)
+    window.history.replaceState({}, document.title, `${window.location.origin}${import.meta.env.BASE_URL}`)
     return data.user
   }
   return wait({
