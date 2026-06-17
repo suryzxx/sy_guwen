@@ -15,7 +15,24 @@ function nowText() {
 }
 
 export async function loginByWecom() {
-  if (!useMock) return http.post('/wecom/login')
+  if (!useMock) {
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get('code')
+
+    if (!code) {
+      const redirectUri = `${window.location.origin}${window.location.pathname}`
+      const { url } = await http.get('/wecom/oauth-url', {
+        params: { redirect_uri: redirectUri }
+      })
+      window.location.href = url
+      return new Promise(() => {})
+    }
+
+    const data = await http.post('/wecom/login', { code })
+    localStorage.setItem('consultant_token', `Bearer ${data.token}`)
+    window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`)
+    return data.user
+  }
   return wait({
     id: 'u001',
     name: '张顾问',
