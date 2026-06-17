@@ -35,8 +35,8 @@ jobs:
         run: npm run build
         env:
           VITE_APP_ENV: test
-          VITE_USE_MOCK: 'true'
-          VITE_API_BASE_URL: ''
+          VITE_USE_MOCK: 'false'
+          VITE_API_BASE_URL: https://sy-guwen.onrender.com
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
 
       - name: Setup Pages
