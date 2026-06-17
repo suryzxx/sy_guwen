@@ -1,6 +1,6 @@
 import { classes, notifications, orders, students, trackRecords } from './data'
 
-const STORAGE_KEY = 'sy_guwen_mock_state'
+const STORAGE_KEY = 'sy_guwen_mock_state_v2'
 
 function clone(data) {
   return JSON.parse(JSON.stringify(data))

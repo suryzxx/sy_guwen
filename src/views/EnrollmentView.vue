@@ -1,5 +1,5 @@
 <template>
-  <AppShell title="创建订单" subtitle="顾问创建订单，家长在小程序确认并支付" :show-back="Boolean($route.query.studentId)">
+  <AppShell>
     <div class="order-layout">
       <section class="panel">
         <div class="panel-header">

@@ -1,50 +1,70 @@
 <template>
-  <AppShell title="个人主页" subtitle="顾问信息与工作概览">
+  <AppShell>
     <div class="narrow-page">
       <section class="profile-hero">
-        <div class="profile-avatar">{{ initial }}</div>
+        <img class="profile-avatar" :src="profileAvatar" alt="顾问头像" />
         <div>
-          <span class="eyebrow">企业微信免登录</span>
           <h2>{{ user?.name || '张顾问' }}</h2>
-          <p>{{ user?.roleName || '课程顾问' }} · {{ user?.campus || '五台山校区' }}</p>
-        </div>
-      </section>
-
-      <section class="stats-grid">
-        <div class="stat-card">
-          <span>今日待跟进</span>
-          <strong>{{ pendingFollowCount }}</strong>
-        </div>
-        <div class="stat-card">
-          <span>待推送订单</span>
-          <strong>{{ pendingOrderCount }}</strong>
-        </div>
-        <div class="stat-card">
-          <span>未读通知</span>
-          <strong>{{ store.unreadCount }}</strong>
+          <p>{{ user?.campus || '五台山校区' }}</p>
         </div>
       </section>
 
       <section class="panel">
         <div class="panel-header">
-          <h2>工作信息</h2>
+          <h2>数据面板</h2>
+          <router-link class="panel-link" to="/data-panel">查看更多</router-link>
         </div>
-        <div class="summary-row"><span>账号角色</span><strong>{{ user?.roleName || '课程顾问' }}</strong></div>
-        <div class="summary-row"><span>所属校区</span><strong>{{ user?.campus || '五台山校区' }}</strong></div>
-        <div class="summary-row"><span>当前环境</span><strong>{{ appEnvText }}</strong></div>
-        <div class="summary-row"><span>数据模式</span><strong>{{ useMock ? '模拟数据' : '后端接口' }}</strong></div>
+        <div class="stats-grid compact">
+          <div class="stat-card">
+            <span>线索总数</span>
+            <strong>{{ leadCount }}</strong>
+          </div>
+          <div class="stat-card">
+            <span>待推送订单</span>
+            <strong>{{ pendingOrderCount }}</strong>
+          </div>
+          <div class="stat-card">
+            <span>未读通知</span>
+            <strong>{{ store.unreadCount }}</strong>
+          </div>
+        </div>
       </section>
 
       <section class="panel">
         <div class="panel-header">
-          <h2>快捷入口</h2>
+          <h2>个人信息</h2>
         </div>
-        <div class="quick-actions">
-          <router-link class="secondary-button" to="/workbench">学生列表</router-link>
-          <router-link class="secondary-button" to="/enrollment">创建订单</router-link>
-          <router-link class="secondary-button" to="/notifications">消息通知</router-link>
+        <div class="readonly-form">
+          <div v-for="field in profileFields" :key="field.label" class="readonly-field">
+            <span class="required-label">{{ field.label }}</span>
+            <div class="readonly-value">{{ field.value }}</div>
+          </div>
+
+          <div class="readonly-field">
+            <span>头像</span>
+            <div class="readonly-image-box">
+              <img :src="profileAvatar" alt="顾问头像" />
+            </div>
+          </div>
+
+          <div class="readonly-field">
+            <span>宣传海报</span>
+            <div class="poster-preview" aria-label="宣传海报预览">
+              <div class="poster-card">
+                <div class="poster-avatar"></div>
+                <div class="poster-lines">
+                  <i></i>
+                  <i></i>
+                </div>
+                <div class="poster-qr">
+                  <b v-for="index in 25" :key="index"></b>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
+
     </div>
   </AppShell>
 </template>
@@ -53,7 +73,7 @@
 import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import AppShell from '../components/AppShell.vue'
-import { appEnv, useMock } from '../config/env'
+import profileAvatar from '../assets/avatar.png'
 import { useWorkbenchStore } from '../stores/workbench'
 
 const store = useWorkbenchStore()
@@ -63,8 +83,14 @@ onMounted(async () => {
   if (!store.user) await store.bootstrap()
 })
 
-const initial = computed(() => (user.value?.name || '顾问').slice(0, 1))
 const pendingOrderCount = computed(() => store.orders.filter((item) => item.status === 'pending').length)
-const pendingFollowCount = computed(() => store.students.filter((item) => item.primaryType === 'lead').length)
-const appEnvText = computed(() => (appEnv === 'production' ? '正式环境' : '测试环境'))
+const leadCount = computed(() => store.students.filter((item) => item.primaryType === 'lead').length)
+const profileFields = computed(() => [
+  { label: '员工姓名', value: user.value?.name || '规划师Ella' },
+  { label: '联系电话', value: user.value?.phone || '18756093437' },
+  { label: '性别', value: user.value?.gender || '女' },
+  { label: '所属地区', value: user.value?.region || '江苏省 / 南京市 / 鼓楼区' },
+  { label: '所属校区', value: user.value?.campus || '辰龙尚悦中心' },
+  { label: '用户职位', value: user.value?.roleName || '学习规划师' }
+])
 </script>

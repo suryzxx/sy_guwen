@@ -1,5 +1,5 @@
 <template>
-  <AppShell title="消息通知" subtitle="企业微信消息跳转入口">
+  <AppShell>
     <div class="narrow-page">
       <section class="panel">
         <div class="panel-header">

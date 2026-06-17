@@ -35,9 +35,13 @@ export async function loginByWecom() {
   }
   return wait({
     id: 'u001',
-    name: '张顾问',
-    roleName: '课程顾问',
-    campus: '五台山校区'
+    name: '规划师Ella',
+    phone: '18756093437',
+    gender: '女',
+    region: '江苏省 / 南京市 / 鼓楼区',
+    campus: '辰龙尚悦中心',
+    roleName: '学习规划师',
+    posterName: '宣传海报'
   })
 }
 

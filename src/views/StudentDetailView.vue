@@ -1,5 +1,5 @@
 <template>
-  <AppShell title="学生详情" show-back>
+  <AppShell>
     <StudentDetailContent :student-id="$route.params.id" @create-order="goCreateOrder" />
   </AppShell>
 </template>

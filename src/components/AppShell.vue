@@ -19,18 +19,6 @@
     </aside>
 
     <main class="shell-main">
-      <header class="top-bar">
-        <button v-if="showBack" class="icon-button mobile-only" type="button" @click="$router.back()">‹</button>
-        <div>
-          <h1>{{ title }}</h1>
-          <p v-if="subtitle">{{ subtitle }}</p>
-        </div>
-        <router-link class="message-link" to="/notifications">
-          消息
-          <span v-if="unreadCount" class="message-dot">{{ unreadCount }}</span>
-        </router-link>
-      </header>
-
       <slot />
     </main>
 
@@ -51,12 +39,6 @@ import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useWorkbenchStore } from '../stores/workbench'
 import AppIcon from './AppIcon.vue'
-
-defineProps({
-  title: { type: String, required: true },
-  subtitle: { type: String, default: '' },
-  showBack: { type: Boolean, default: false }
-})
 
 const store = useWorkbenchStore()
 const { user, unreadCount } = storeToRefs(store)

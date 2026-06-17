@@ -1,5 +1,5 @@
 <template>
-  <AppShell title="订单详情" show-back>
+  <AppShell>
     <div class="narrow-page">
       <section v-if="order" class="status-panel" :class="`order-${order.status}`">
         <h2>{{ statusTitle }}</h2>

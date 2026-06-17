@@ -1,5 +1,5 @@
 <template>
-  <AppShell title="学生管理" :subtitle="subtitle">
+  <AppShell>
     <div class="workspace-grid">
       <section class="list-pane">
         <div class="search-panel">
@@ -77,7 +77,6 @@ onMounted(async () => {
   if (!selectedId.value && filteredStudents.value[0]) selectedId.value = filteredStudents.value[0].id
 })
 
-const subtitle = computed(() => `${store.user?.name || '顾问'} · ${store.user?.roleName || '免登录占位'}`)
 const currentTabs = computed(() => labels[primaryTab.value] || [])
 
 const filteredStudents = computed(() => {

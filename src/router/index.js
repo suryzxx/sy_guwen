@@ -5,6 +5,7 @@ import EnrollmentView from '../views/EnrollmentView.vue'
 import OrderDetailView from '../views/OrderDetailView.vue'
 import NotificationsView from '../views/NotificationsView.vue'
 import ProfileView from '../views/ProfileView.vue'
+import DataPanelView from '../views/DataPanelView.vue'
 
 const routes = [
   { path: '/', redirect: '/workbench' },
@@ -13,7 +14,8 @@ const routes = [
   { path: '/enrollment', name: 'enrollment', component: EnrollmentView, meta: { title: '创建订单' } },
   { path: '/orders/:id', name: 'order-detail', component: OrderDetailView, meta: { title: '订单详情' } },
   { path: '/notifications', name: 'notifications', component: NotificationsView, meta: { title: '消息通知' } },
-  { path: '/profile', name: 'profile', component: ProfileView, meta: { title: '个人主页' } }
+  { path: '/profile', name: 'profile', component: ProfileView, meta: { title: '个人主页' } },
+  { path: '/data-panel', name: 'data-panel', component: DataPanelView, meta: { title: '数据面板' } }
 ]
 
 const router = createRouter({
@@ -25,7 +27,7 @@ const router = createRouter({
 })
 
 router.afterEach((to) => {
-  document.title = `${to.meta.title || '顾问工作台'} - 思阅顾问`
+  document.title = to.meta.title || '顾问工作台'
 })
 
 export default router
