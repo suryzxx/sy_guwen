@@ -72,6 +72,10 @@ export function resolveExternalContactStudent(externalUserid) {
   return http.post('/wecom/external-contact/resolve', { externalUserid })
 }
 
+export function debugExternalContactStudent(externalUserid) {
+  return http.post('/wecom/external-contact/debug', { externalUserid })
+}
+
 export function bindExternalContactStudent(payload) {
   return http.post('/wecom/external-contact/bind', payload)
 }

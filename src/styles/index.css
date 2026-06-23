@@ -2680,3 +2680,78 @@ button.home-card {
     grid-template-columns: 1fr;
   }
 }
+
+.wecom-debug-page {
+  padding-top: 28px;
+}
+
+.wecom-debug-intro {
+  margin: 0 0 16px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.debug-steps {
+  display: grid;
+  gap: 12px;
+}
+
+.debug-step {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--surface-soft);
+}
+
+.debug-step > span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #d8dee8;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.debug-step strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.debug-step p,
+.debug-step small {
+  display: block;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.debug-step .secondary-button {
+  margin-top: 10px;
+}
+
+.debug-step.ok {
+  background: rgba(7, 193, 96, 0.1);
+}
+
+.debug-step.ok > span {
+  background: var(--wechat-green);
+}
+
+.debug-step.error {
+  background: rgba(245, 108, 108, 0.1);
+}
+
+.debug-step.error > span {
+  background: #f56c6c;
+}

@@ -18,15 +18,19 @@ router.beforeEach(async (to) => {
   if (!isHomeEntry || sidebarEntryChecked) return true
 
   sidebarEntryChecked = true
+  const isWecomClient = /wxwork/i.test(window.navigator.userAgent)
   const store = useWorkbenchStore()
   try {
     if (!store.user) await store.bootstrap()
-    const student = await store.resolveSidebarContact()
-    if (student?.id) {
-      return { path: `/students/${student.id}`, replace: true, query: { from: 'sidebar' } }
+    if (isWecomClient) {
+      const student = await store.resolveSidebarContact()
+      if (student?.id) {
+        return { path: `/students/${student.id}`, replace: true, query: { from: 'sidebar' } }
+      }
+      return { path: '/wecom-debug', replace: true }
     }
   } catch {
-    // Non-WeCom entry or unbound contact: keep the normal home page.
+    if (isWecomClient) return { path: '/wecom-debug', replace: true }
   }
   return true
 })

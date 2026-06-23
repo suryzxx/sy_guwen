@@ -145,8 +145,55 @@ async function getExternalContact(externalUserid) {
   contactUrl.searchParams.set('access_token', accessToken)
   contactUrl.searchParams.set('external_userid', externalUserid)
   const data = await fetch(contactUrl).then((response) => response.json())
-  if (data.errcode) throw Object.assign(new Error(data.errmsg), { status: 502 })
+  if (data.errcode) throw Object.assign(new Error(data.errmsg), { status: 502, wecom: data })
   return data
+}
+
+async function debugExternalContact(externalUserid) {
+  const result = {
+    externalUserid,
+    existingBinding: null,
+    contactLookup: null,
+    candidateNames: [],
+    matchedStudent: null,
+    canAutoBind: false
+  }
+
+  const existingBinding = getStudentByExternalUserid(CORP_ID, externalUserid)
+  if (existingBinding) {
+    result.existingBinding = existingBinding
+    result.matchedStudent = existingBinding.student
+    return result
+  }
+
+  try {
+    const contact = await getExternalContact(externalUserid)
+    const candidateNames = [
+      contact.external_contact?.name,
+      ...(contact.follow_user || []).map((item) => item.remark)
+    ].filter(Boolean)
+
+    result.contactLookup = { ok: true }
+    result.candidateNames = [...new Set(candidateNames)]
+    for (const name of result.candidateNames) {
+      const student = findStudentByName(name)
+      if (student) {
+        result.matchedStudent = student
+        result.canAutoBind = true
+        break
+      }
+    }
+  } catch (error) {
+    result.contactLookup = {
+      ok: false,
+      message: error.message || '企业微信客户详情接口调用失败',
+      errcode: error.wecom?.errcode,
+      errmsg: error.wecom?.errmsg,
+      hint: error.wecom?.hint
+    }
+  }
+
+  return result
 }
 
 async function autoBindExternalContact(externalUserid) {
@@ -220,6 +267,15 @@ async function handleRequest(req, res) {
       if (binding) return sendJson(res, 200, binding)
       const autoBinding = await autoBindExternalContact(externalUserid)
       return autoBinding ? sendJson(res, 200, autoBinding) : sendJson(res, 404, { error: 'External contact is not bound' })
+    }
+
+    if (req.method === 'POST' && path === '/wecom/external-contact/debug') {
+      const { externalUserid } = await readJson(req)
+      if (!externalUserid) return sendJson(res, 200, {
+        externalUserid: '',
+        externalUseridError: '未拿到企业微信当前外部联系人 external_userid'
+      })
+      return sendJson(res, 200, await debugExternalContact(externalUserid))
     }
 
     if (req.method === 'POST' && path === '/wecom/external-contact/bind') {

@@ -7,6 +7,7 @@ import NotificationsView from '../views/NotificationsView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import DataPanelView from '../views/DataPanelView.vue'
 import ContactsView from '../views/ContactsView.vue'
+import WecomDebugView from '../views/WecomDebugView.vue'
 
 const routes = [
   { path: '/', redirect: '/workbench' },
@@ -17,7 +18,8 @@ const routes = [
   { path: '/orders/:id', name: 'order-detail', component: OrderDetailView, meta: { title: '订单详情' } },
   { path: '/notifications', name: 'notifications', component: NotificationsView, meta: { title: '消息通知' } },
   { path: '/profile', name: 'profile', component: ProfileView, meta: { title: '个人主页' } },
-  { path: '/data-panel', name: 'data-panel', component: DataPanelView, meta: { title: '数据面板' } }
+  { path: '/data-panel', name: 'data-panel', component: DataPanelView, meta: { title: '数据面板' } },
+  { path: '/wecom-debug', name: 'wecom-debug', component: WecomDebugView, meta: { title: '企微侧边栏调试' } }
 ]
 
 const router = createRouter({
