@@ -39,7 +39,7 @@
             <span v-else class="contact-avatar" :class="`avatar-tone-${index % 5}`">{{ student.name.slice(0, 1) }}</span>
             <span class="contact-copy">
               <strong>{{ student.name }}</strong>
-              <small>{{ student.school || student.campus || student.phone }}</small>
+              <small>{{ student.phone || student.campus }}</small>
             </span>
           </button>
         </section>

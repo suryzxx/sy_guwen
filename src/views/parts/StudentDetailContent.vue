@@ -7,12 +7,18 @@
           <img v-if="avatarSrc" class="student-profile-avatar" :src="avatarSrc" :alt="`${student.name}头像`" />
           <span v-else class="student-profile-avatar avatar-fallback">{{ student.name.slice(0, 1) }}</span>
           <div>
-            <span class="eyebrow">基本信息</span>
             <h2>{{ student.name }}</h2>
-            <p>{{ student.englishName || '未填写英文名' }} · {{ genderText }} · {{ student.currentGrade }}</p>
+            <p class="student-phone-line">
+              {{ student.phone }}
+              <AppIcon name="phone" />
+            </p>
+            <div class="student-basic-tags">
+              <span>{{ genderText }}</span>
+              <span>{{ student.currentGrade }}</span>
+              <span>{{ student.campus }}</span>
+            </div>
           </div>
         </div>
-        <button class="secondary-button" type="button" @click="contactParent">联系家长</button>
       </section>
 
       <section class="panel current-work-panel">
@@ -20,41 +26,16 @@
           <h2>当前进度</h2>
           <span class="status-pill">{{ stageLabel(student.stage) }}</span>
         </div>
-        <div v-if="pendingTask" class="current-task">
-          <div>
-            <span>当前待办</span>
-            <strong>{{ pendingTask.title }}</strong>
-            <small :class="{ overdue: isOverdue(pendingTask) }">
-              {{ pendingTask.dueAt ? `截止 ${pendingTask.dueAt}` : '未设置截止时间' }}
-            </small>
-          </div>
-          <button class="small-button" type="button" @click="finishTask(pendingTask.id)">标记完成</button>
-        </div>
-        <div v-else class="empty-state">当前没有待办</div>
-        <div v-if="manualTransitions.length" class="stage-actions">
-          <span>推进阶段</span>
+        <div class="work-action-area">
+          <p v-if="currentWorkAction.kind === 'tip'">{{ currentWorkAction.text }}</p>
           <button
-            v-for="stage in manualTransitions"
-            :key="stage"
+            v-else
             class="secondary-button"
             type="button"
-            @click="prepareTransition(stage)"
+            @click="runWorkAction"
           >
-            {{ stageLabel(stage) }}
+            {{ currentWorkAction.label }}
           </button>
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="info-grid">
-          <div><span>家长手机号</span><strong>{{ student.phone }}</strong></div>
-          <div><span>学校</span><strong>{{ student.school }}</strong></div>
-          <div><span>城市校区</span><strong>{{ student.city }} · {{ student.campus }}</strong></div>
-          <div><span>进入阶段时间</span><strong>{{ student.stageEnteredAt || '未记录' }}</strong></div>
-        </div>
-        <div v-if="student.cancellationReason" class="notice-box">
-          <span>取消原因</span>
-          <strong>{{ student.cancellationReason }}</strong>
         </div>
       </section>
 
@@ -71,14 +52,6 @@
       <section v-if="showAssessment" class="panel">
         <div class="panel-header">
           <h2>评测信息</h2>
-          <button
-            v-if="[STUDENT_STAGES.PENDING_LEVEL, STUDENT_STAGES.ASSESSED, STUDENT_STAGES.ADAPTED_NOT_CONVERTED, STUDENT_STAGES.NOT_ADAPTED].includes(student.stage)"
-            class="small-button"
-            type="button"
-            @click="openEvaluationForm"
-          >
-            录入结果
-          </button>
         </div>
         <div class="info-grid compact">
           <div><span>预约日期</span><strong>{{ student.appointment?.date || '未填写' }}</strong></div>
@@ -102,34 +75,18 @@
 
       <section class="panel">
         <div class="panel-header"><h2>阶段历史</h2></div>
-        <div v-if="history.length" class="record-list">
-          <article v-for="item in history" :key="item.id" class="record-item">
-            <p>{{ item.fromStage ? `${stageLabel(item.fromStage)} → ` : '' }}{{ stageLabel(item.toStage) }}</p>
-            <div>{{ item.changedAt }} · {{ item.operator }}<template v-if="item.reason"> · {{ item.reason }}</template></div>
-          </article>
+        <div class="stage-progress">
+          <div
+            v-for="item in stageProgressItems"
+            :key="item.label"
+            class="stage-progress-item"
+            :class="{ completed: item.completed }"
+          >
+            <span class="stage-progress-dot"></span>
+            <span>{{ item.label }}</span>
+          </div>
         </div>
-        <div v-else class="empty-state">暂无阶段历史</div>
       </section>
-
-      <div class="fixed-action">
-        <button
-          v-if="student.stage === STUDENT_STAGES.ADAPTED_NOT_CONVERTED && student.evaluationResult?.level"
-          class="primary-button"
-          type="button"
-          @click="$emit('create-order', student.id)"
-        >
-          创建报名订单
-        </button>
-        <button
-          v-else-if="[STUDENT_STAGES.PENDING_LEVEL, STUDENT_STAGES.ASSESSED, STUDENT_STAGES.ADAPTED_NOT_CONVERTED, STUDENT_STAGES.NOT_ADAPTED].includes(student.stage)"
-          class="primary-button"
-          type="button"
-          @click="openEvaluationForm"
-        >
-          {{ student.evaluationResult?.level ? '调整评测结果' : '录入评测结果' }}
-        </button>
-        <button v-else class="primary-button" type="button" @click="contactParent">联系家长</button>
-      </div>
 
       <van-dialog v-model:show="showRecordForm" title="录入跟进记录" show-cancel-button @confirm="saveRecord">
         <div class="dialog-body">
@@ -137,49 +94,66 @@
         </div>
       </van-dialog>
 
-      <van-dialog v-model:show="showCancellationForm" title="记录取消原因" show-cancel-button @confirm="confirmCancellation">
+      <van-dialog v-model:show="showPaperDialog" title="分配试卷" show-cancel-button @confirm="confirmPaperAssignment">
         <div class="dialog-body">
-          <van-field v-model="cancellationReason" type="textarea" maxlength="200" show-word-limit rows="4" placeholder="请填写家长取消评测的原因" />
+          <div class="choice-list">
+            <button
+              v-for="paper in paperOptions"
+              :key="paper"
+              type="button"
+              :class="{ active: selectedPaper === paper }"
+              @click="selectedPaper = paper"
+            >
+              {{ paper }}
+            </button>
+          </div>
         </div>
       </van-dialog>
 
-      <van-dialog v-model:show="showAppointmentForm" title="填写评测预约" show-cancel-button @confirm="confirmAppointment">
+      <van-dialog v-model:show="showLevelDialog" title="定级" show-cancel-button @confirm="confirmLevel">
         <div class="dialog-body">
-          <van-field v-model="appointment.date" label="日期" type="date" />
-          <van-field v-model="appointment.time" label="时间" type="time" />
-          <van-field v-model="appointment.campus" label="校区" placeholder="请输入评测校区" />
-          <van-field v-model="appointment.teacher" label="老师" placeholder="请输入评测老师" />
-        </div>
-      </van-dialog>
-
-      <van-dialog v-model:show="showEvaluationForm" title="录入评测结果" show-cancel-button @confirm="saveEvaluation">
-        <div class="dialog-body">
-          <van-field v-model="evaluation.level" required label="评测等级" placeholder="例如 A+" />
-          <div class="dialog-field">
-            <span>适配结果</span>
-            <div class="stage-actions inline">
+          <div class="dialog-choice-group">
+            <span>年份</span>
+            <div class="choice-list compact">
               <button
+                v-for="year in levelYears"
+                :key="year"
                 type="button"
-                class="secondary-button"
-                :class="{ active: evaluation.fitResult === 'adapted' }"
-                @click="evaluation.fitResult = 'adapted'"
+                :class="{ active: levelForm.year === year }"
+                @click="levelForm.year = year"
               >
-                适配未转化
-              </button>
-              <button
-                type="button"
-                class="secondary-button"
-                :class="{ active: evaluation.fitResult === 'not_adapted' }"
-                @click="evaluation.fitResult = 'not_adapted'"
-              >
-                无适配
+                {{ year }}
               </button>
             </div>
           </div>
-          <van-field v-model="evaluation.totalScore" label="评测得分" type="number" placeholder="选填" />
-          <van-field v-model="evaluation.fullScore" label="满分" type="number" placeholder="选填" />
-          <van-field v-model="evaluation.classType" label="适合班型" placeholder="选填" />
-          <van-field v-model="evaluation.conclusion" label="评测结论" type="textarea" rows="3" maxlength="300" show-word-limit placeholder="选填" />
+          <div class="dialog-choice-group">
+            <span>学期</span>
+            <div class="choice-list compact">
+              <button
+                v-for="semester in levelSemesters"
+                :key="semester"
+                type="button"
+                :class="{ active: levelForm.semester === semester }"
+                @click="levelForm.semester = semester"
+              >
+                {{ semester }}
+              </button>
+            </div>
+          </div>
+          <div class="dialog-choice-group">
+            <span>等级</span>
+            <div class="choice-list compact">
+              <button
+                v-for="level in levelOptions"
+                :key="level"
+                type="button"
+                :class="{ active: levelForm.level === level }"
+                @click="levelForm.level = level"
+              >
+                {{ level }}
+              </button>
+            </div>
+          </div>
         </div>
       </van-dialog>
     </template>
@@ -188,134 +162,167 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { showToast } from 'vant'
+import { showConfirmDialog, showToast } from 'vant'
+import AppIcon from '../../components/AppIcon.vue'
 import RecordList from '../../components/RecordList.vue'
 import { useWorkbenchStore } from '../../stores/workbench'
-import { STAGE_META, STAGE_TRANSITIONS, STUDENT_STAGES, stageLabel } from '../../../shared/student-workflow.js'
+import { STAGE_META, STUDENT_STAGES, stageLabel } from '../../../shared/student-workflow.js'
 
 const props = defineProps({
   studentId: { type: String, required: true },
   embedded: { type: Boolean, default: false }
 })
 
-defineEmits(['create-order'])
-
 const store = useWorkbenchStore()
 const showRecordForm = ref(false)
-const showCancellationForm = ref(false)
-const showAppointmentForm = ref(false)
-const showEvaluationForm = ref(false)
+const showPaperDialog = ref(false)
+const showLevelDialog = ref(false)
 const recordInput = ref('')
-const cancellationReason = ref('')
-const appointment = reactive({ date: '', time: '', campus: '', teacher: '' })
-const evaluation = reactive({ level: '', fitResult: 'adapted', totalScore: '', fullScore: '', classType: '', conclusion: '' })
+const selectedPaper = ref('')
+const levelForm = reactive({ year: '2026', semester: '暑', level: 'G1' })
+const paperOptions = ['英语基础诊断卷 A', '英语基础诊断卷 B', '阅读能力测评卷', '语法专项测评卷']
+const levelYears = ['2026', '2027']
+const levelSemesters = ['春', '暑', '秋', '寒']
+const levelOptions = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6']
+const stageProgressSteps = ['添加企微', '预约评测', '签到', '分配试卷', '定级', '报名', '进入班级']
 
 onMounted(() => load())
 watch(() => props.studentId, () => load())
 
 const student = computed(() => store.studentById(props.studentId))
 const records = computed(() => store.trackRecords[props.studentId] || [])
-const tasks = computed(() => store.studentTasks[props.studentId] || [])
-const history = computed(() => store.stageHistory[props.studentId] || [])
-const pendingTask = computed(() => tasks.value.find((item) => item.status === 'pending'))
 const genderText = computed(() => (student.value?.gender === 'female' ? '女' : '男'))
 const showAssessment = computed(() => STAGE_META[student.value?.stage]?.group === 'assessment' || Boolean(student.value?.evaluationResult))
+const currentWorkAction = computed(() => {
+  switch (student.value?.stage) {
+    case STUDENT_STAGES.PENDING_ADD:
+      return { kind: 'tip', text: '请规划师添加家长企微，并完成首次触达。' }
+    case STUDENT_STAGES.ADDED:
+    case STUDENT_STAGES.PENDING_ACTIVATION:
+    case STUDENT_STAGES.CANCELLED:
+      return { kind: 'tip', text: '请规划师沟通学生情况，确认评测意向并预约评测时间。' }
+    case STUDENT_STAGES.PENDING_VISIT:
+      return { kind: 'action', action: 'checkin', label: '签到' }
+    case STUDENT_STAGES.VISITED:
+      return { kind: 'action', action: 'assign-paper', label: '分配试卷' }
+    case STUDENT_STAGES.PENDING_LEVEL:
+      return { kind: 'action', action: 'level', label: '定级' }
+    case STUDENT_STAGES.ADAPTED_NOT_CONVERTED:
+      return { kind: 'action', action: 'enrollment-placeholder', label: '报名操作' }
+    default:
+      return { kind: 'tip', text: '当前暂无需要处理的操作。' }
+  }
+})
 const avatarSrc = computed(() => {
   if (!student.value?.avatar) return ''
   return `${import.meta.env.BASE_URL}${student.value.avatar.replace(/^\/+/, '')}`
 })
-const manualTransitions = computed(() => {
-  const systemStages = [STUDENT_STAGES.ASSESSED, STUDENT_STAGES.ENROLLED_STUDENT]
-  return (STAGE_TRANSITIONS[student.value?.stage] || []).filter((stage) => !systemStages.includes(stage))
+const stageProgressItems = computed(() => {
+  const activeIndex = stageProgressIndex(student.value?.stage)
+  return stageProgressSteps.map((label, index) => ({
+    label,
+    completed: index <= activeIndex
+  }))
 })
+
+function stageProgressIndex(stage) {
+  switch (stage) {
+    case STUDENT_STAGES.PENDING_ADD:
+      return -1
+    case STUDENT_STAGES.ADDED:
+    case STUDENT_STAGES.PENDING_ACTIVATION:
+    case STUDENT_STAGES.CANCELLED:
+      return 0
+    case STUDENT_STAGES.PENDING_VISIT:
+      return 1
+    case STUDENT_STAGES.VISITED:
+      return 2
+    case STUDENT_STAGES.PENDING_LEVEL:
+      return 3
+    case STUDENT_STAGES.ASSESSED:
+    case STUDENT_STAGES.ADAPTED_NOT_CONVERTED:
+    case STUDENT_STAGES.NOT_ADAPTED:
+      return 4
+    case STUDENT_STAGES.ENROLLED_STUDENT:
+      return 6
+    default:
+      return -1
+  }
+}
 
 async function load() {
   if (props.studentId) await store.loadStudent(props.studentId)
 }
 
-function contactParent() {
-  showToast(`联系家长：${student.value.phone}`)
+async function runWorkAction() {
+  switch (currentWorkAction.value.action) {
+    case 'checkin':
+      await confirmCheckin()
+      break
+    case 'assign-paper':
+      selectedPaper.value = paperOptions[0]
+      showPaperDialog.value = true
+      break
+    case 'level':
+      Object.assign(levelForm, {
+        year: student.value?.evaluationResult?.year || '2026',
+        semester: student.value?.evaluationResult?.semester || '暑',
+        level: student.value?.evaluationResult?.level || 'G1'
+      })
+      showLevelDialog.value = true
+      break
+    case 'enrollment-placeholder':
+      showToast('报名操作后续接入')
+      break
+    default:
+      break
+  }
 }
 
-function isOverdue(task) {
-  if (!task.dueAt || task.status !== 'pending') return false
-  const normalized = task.dueAt.replace(' ', 'T')
-  return new Date(normalized).getTime() < Date.now()
-}
-
-async function finishTask(taskId) {
-  await store.completeTask(props.studentId, taskId)
-  showToast('待办已完成')
-}
-
-function prepareTransition(stage) {
-  if (stage === STUDENT_STAGES.CANCELLED) {
-    cancellationReason.value = ''
-    showCancellationForm.value = true
+async function confirmCheckin() {
+  try {
+    await showConfirmDialog({
+      title: '确认签到',
+      message: `确认 ${student.value.name} 已到访签到？`
+    })
+  } catch {
     return
   }
-  if (stage === STUDENT_STAGES.PENDING_VISIT) {
-    Object.assign(appointment, student.value.appointment || { date: '', time: '', campus: student.value.campus || '', teacher: '' })
-    showAppointmentForm.value = true
-    return
-  }
-  changeStage(stage)
-}
-
-async function changeStage(stage, extra = {}) {
-  await store.setStudentStage(props.studentId, { stage, reason: `规划师推进至${stageLabel(stage)}`, ...extra })
-  showToast(`已进入${stageLabel(stage)}`)
-}
-
-async function confirmCancellation() {
-  if (!cancellationReason.value.trim()) {
-    showToast('请填写取消原因')
-    return false
-  }
-  await changeStage(STUDENT_STAGES.CANCELLED, { cancellationReason: cancellationReason.value.trim() })
-  return true
-}
-
-async function confirmAppointment() {
-  if (!appointment.date || !appointment.time || !appointment.campus.trim()) {
-    showToast('请填写预约日期、时间和校区')
-    return false
-  }
-  await changeStage(STUDENT_STAGES.PENDING_VISIT, { appointment: { ...appointment } })
-  return true
-}
-
-function openEvaluationForm() {
-  Object.assign(evaluation, {
-    level: student.value.evaluationResult?.level || '',
-    fitResult: student.value.stage === STUDENT_STAGES.NOT_ADAPTED ? 'not_adapted' : 'adapted',
-    totalScore: student.value.evaluationScores?.totalScore ?? '',
-    fullScore: student.value.evaluationScores?.fullScore ?? '',
-    classType: student.value.evaluationResult?.classType || '',
-    conclusion: student.value.evaluationResult?.conclusion || ''
+  await store.setStudentStage(props.studentId, {
+    stage: STUDENT_STAGES.VISITED,
+    reason: '规划师确认评测到访签到'
   })
-  showEvaluationForm.value = true
+  showToast('签到成功')
 }
 
-async function saveEvaluation() {
-  if (!evaluation.level.trim()) {
-    showToast('请填写评测等级')
+async function confirmPaperAssignment() {
+  if (!selectedPaper.value) {
+    showToast('请选择试卷')
     return false
   }
-  if (!['adapted', 'not_adapted'].includes(evaluation.fitResult)) {
-    showToast('请填写适配结果：adapted 或 not_adapted')
+  await store.setStudentStage(props.studentId, {
+    stage: STUDENT_STAGES.PENDING_LEVEL,
+    reason: `已分配试卷：${selectedPaper.value}`
+  })
+  showToast('试卷已分配')
+  return true
+}
+
+async function confirmLevel() {
+  if (!levelForm.year || !levelForm.semester || !levelForm.level) {
+    showToast('请选择年份、学期和等级')
     return false
   }
-  const payload = {
-    level: evaluation.level.trim(),
-    fitResult: evaluation.fitResult,
-    classType: evaluation.classType.trim(),
-    conclusion: evaluation.conclusion.trim()
-  }
-  if (evaluation.totalScore !== '') payload.totalScore = Number(evaluation.totalScore)
-  if (evaluation.fullScore !== '') payload.fullScore = Number(evaluation.fullScore)
-  await store.saveEvaluation(props.studentId, payload)
-  showToast('评测结果已保存')
+  await store.saveEvaluation(props.studentId, {
+    year: levelForm.year,
+    semester: levelForm.semester,
+    grade: levelForm.level,
+    level: levelForm.level,
+    fitResult: 'adapted',
+    classType: student.value?.evaluationResult?.classType || '',
+    conclusion: student.value?.evaluationResult?.conclusion || ''
+  })
+  showToast('定级完成')
   return true
 }
 

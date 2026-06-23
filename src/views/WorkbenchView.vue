@@ -51,23 +51,26 @@
       </section>
     </section>
 
-    <div v-else class="workspace-grid">
+    <div v-else class="todo-workspace">
       <section class="list-pane">
-        <div class="work-list-header">
-          <button class="back-button" type="button" @click="backToWorkOverview">
-            <AppIcon name="chevron-left" />
-            今日待办
-          </button>
-          <div>
-            <h1>{{ activeWork.title }}</h1>
-            <span>共 {{ filteredStudents.length }} 名学生</span>
+        <button class="back-button todo-workspace-back" type="button" @click="backToWorkOverview">
+          <AppIcon name="chevron-left" />
+          返回
+        </button>
+        <section class="home-card todo-filter-card">
+          <div class="reminder-grid">
+            <button
+              v-for="item in todoStats"
+              :key="item.id"
+              type="button"
+              :class="{ active: activeWorkId === item.id }"
+              @click="openWork(item.id)"
+            >
+              <span>{{ item.title }}</span>
+              <strong>{{ item.count }}</strong>
+            </button>
           </div>
-          <p>{{ activeWork.description }}</p>
-          <label class="search-box">
-            <AppIcon name="search" />
-            <input v-model="keyword" type="search" placeholder="搜索学生姓名、手机号" />
-          </label>
-        </div>
+        </section>
 
         <div class="student-list">
           <StudentCard
@@ -75,23 +78,14 @@
             :key="student.id"
             :student="student"
             :task="taskForStudent(student.id)"
-            :active="selectedId === student.id"
+            :todo-label="activeWork.title"
+            compact-todo
             @select="selectStudent"
           />
           <div v-if="!filteredStudents.length" class="empty-state work-list-empty">
-            {{ keyword ? '没有符合搜索条件的学生' : '这项工作已经处理完成' }}
+            这项工作已经处理完成
           </div>
         </div>
-      </section>
-
-      <section class="detail-pane desktop-only">
-        <StudentDetailContent
-          v-if="selectedStudent"
-          :student-id="selectedStudent.id"
-          embedded
-          @create-order="goCreateOrder"
-        />
-        <div v-else class="placeholder-panel">当前没有待处理学生</div>
       </section>
     </div>
   </AppShell>
@@ -103,7 +97,6 @@ import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '../components/AppIcon.vue'
 import AppShell from '../components/AppShell.vue'
 import StudentCard from '../components/StudentCard.vue'
-import StudentDetailContent from './parts/StudentDetailContent.vue'
 import {
   TODAY_WORK_ITEMS,
   matchesWorkItem,
@@ -116,7 +109,6 @@ import { useWorkbenchStore } from '../stores/workbench'
 const router = useRouter()
 const route = useRoute()
 const store = useWorkbenchStore()
-const keyword = ref('')
 const activeWorkId = ref('')
 const selectedId = ref('')
 const now = new Date()
@@ -128,6 +120,7 @@ const allStudentsWorkItem = {
 
 onMounted(async () => {
   if (!store.students.length) await store.bootstrap()
+  if (route.query.work) openWork(String(route.query.work))
   if (route.query.view === 'all') openWork('all_students')
 })
 
@@ -170,14 +163,10 @@ const recentOperations = computed(() => Object.entries(store.trackRecords)
 
 const filteredStudents = computed(() => {
   if (!activeWork.value) return []
-  const term = keyword.value.trim().toLowerCase()
   return store.students
     .filter((student) => activeWork.value.id === 'all_students' || matchesWorkItem(activeWork.value.id, student, tasksForStudent(student.id), now))
-    .filter((student) => !term || student.name.toLowerCase().includes(term) || student.phone.includes(term))
     .sort(compareStudents)
 })
-
-const selectedStudent = computed(() => store.studentById(selectedId.value))
 
 watch(filteredStudents, (students) => {
   if (!students.some((student) => student.id === selectedId.value)) {
@@ -188,6 +177,10 @@ watch(filteredStudents, (students) => {
 watch(() => route.query.view, (view) => {
   if (view === 'all') openWork('all_students')
   else if (activeWorkId.value === 'all_students') backToWorkOverview()
+})
+
+watch(() => route.query.work, (workId) => {
+  if (workId) openWork(String(workId))
 })
 
 function tasksForStudent(studentId) {
@@ -208,20 +201,21 @@ function compareStudents(left, right) {
 
 function openWork(workId) {
   activeWorkId.value = workId
-  keyword.value = ''
   selectedId.value = filteredStudents.value[0]?.id || ''
 }
 
 function backToWorkOverview() {
   activeWorkId.value = ''
   selectedId.value = ''
-  keyword.value = ''
   if (route.query.view) router.replace('/workbench')
 }
 
 function selectStudent(student) {
   selectedId.value = student.id
-  if (window.matchMedia('(max-width: 859px)').matches) router.push(`/students/${student.id}`)
+  router.push({
+    path: `/students/${student.id}`,
+    query: activeWorkId.value ? { from: 'todo', work: activeWorkId.value } : {}
+  })
 }
 
 function avatarSrc(student) {
@@ -241,7 +235,4 @@ function relativeTime(value) {
   return days < 30 ? `${days}天前` : value.slice(5, 10)
 }
 
-function goCreateOrder(studentId) {
-  router.push({ path: '/enrollment', query: { studentId } })
-}
 </script>

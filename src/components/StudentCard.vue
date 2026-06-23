@@ -1,5 +1,15 @@
 <template>
-  <article class="student-card" :class="{ active }" @click="$emit('select', student)">
+  <article v-if="compactTodo" class="student-card todo-student-card" @click="$emit('select', student)">
+    <div>
+      <strong>{{ student.name }}</strong>
+      <span>{{ student.phone }}</span>
+    </div>
+    <span class="chevron">
+      <AppIcon name="chevron-right" />
+    </span>
+  </article>
+
+  <article v-else class="student-card" :class="{ active }" @click="$emit('select', student)">
     <div class="card-title-row">
       <div class="student-card-heading">
         <img v-if="avatarSrc" class="student-card-avatar" :src="avatarSrc" :alt="`${student.name}头像`" />
@@ -38,7 +48,9 @@ import { stageLabel } from '../../shared/student-workflow.js'
 const props = defineProps({
   student: { type: Object, required: true },
   task: { type: Object, default: null },
-  active: { type: Boolean, default: false }
+  active: { type: Boolean, default: false },
+  compactTodo: { type: Boolean, default: false },
+  todoLabel: { type: String, default: '' }
 })
 
 defineEmits(['select'])

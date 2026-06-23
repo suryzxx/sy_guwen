@@ -37,6 +37,15 @@ body {
   background: var(--color-bg);
 }
 
+.van-dialog {
+  --van-dialog-confirm-button-text-color: #07c160;
+}
+
+.van-dialog__confirm,
+.van-dialog__confirm:active {
+  color: #07c160;
+}
+
 button,
 input,
 textarea {
@@ -337,6 +346,337 @@ a {
   min-height: 620px;
 }
 
+.todo-workspace {
+  max-width: 900px;
+  margin: 0 auto;
+  padding-top: 22px;
+}
+
+.student-detail-page {
+  padding-top: 22px;
+}
+
+.student-detail-back,
+.todo-workspace-back {
+  margin-bottom: var(--space-3);
+  font-size: 17px;
+}
+
+.student-detail-back .app-icon,
+.todo-workspace-back .app-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.student-detail-page .detail-content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding-bottom: 86px;
+}
+
+.student-detail-page .profile-panel,
+.student-detail-page .panel,
+.student-detail-page .placeholder-panel {
+  border: 1px solid #e2e8ee;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(22, 31, 37, 0.02);
+}
+
+.student-detail-page .profile-panel {
+  align-items: stretch;
+  flex-direction: column;
+  padding: 26px 40px;
+}
+
+.student-detail-page .student-profile-summary {
+  gap: 26px;
+}
+
+.student-detail-page .student-profile-avatar {
+  width: 72px;
+  height: 72px;
+  background: #f5f7fa;
+}
+
+.student-detail-page .eyebrow {
+  color: #16845f;
+  font-size: 16px;
+}
+
+.student-detail-page .profile-panel h2,
+.student-detail-page .panel-header h2 {
+  color: #172033;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.student-detail-page .profile-panel p {
+  color: #687386;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.student-detail-page .student-phone-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.student-detail-page .student-phone-line .app-icon {
+  width: 18px;
+  height: 18px;
+  color: #171717;
+}
+
+.student-detail-page .student-basic-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.student-detail-page .student-basic-tags span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: #16845f;
+  background: #e8f6f0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.student-detail-page .panel {
+  padding: 32px 40px;
+}
+
+.student-detail-page .panel-header {
+  margin-bottom: 24px;
+}
+
+.student-detail-page .status-pill {
+  min-height: 34px;
+  padding: 0 14px;
+  color: #16845f;
+  background: #e8f6f0;
+  font-size: 14px;
+}
+
+.student-detail-page .current-task {
+  border-radius: 14px;
+  background: #e8f6f0;
+}
+
+.student-detail-page .work-action-area {
+  margin-top: 0;
+}
+
+.student-detail-page .work-action-area p {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  color: #687386;
+  background: #f7f9fc;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.student-detail-page .work-action-area .secondary-button {
+  width: 100%;
+}
+
+.student-detail-page .current-task span,
+.student-detail-page .stage-actions > span,
+.student-detail-page .info-grid span,
+.student-detail-page .score-box span {
+  color: #687386;
+  font-size: 14px;
+}
+
+.student-detail-page .current-task strong {
+  color: #172033;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.student-detail-page .current-task small {
+  color: #687386;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.student-detail-page .current-task small.overdue {
+  color: #c2413d;
+}
+
+.student-detail-page .small-button,
+.student-detail-page .secondary-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
+  color: #16845f;
+  background: #e8f6f0;
+  font-size: 15px;
+}
+
+.student-detail-page .secondary-button.active,
+.student-detail-page .primary-button {
+  color: #fff;
+  background: #07c160;
+}
+
+.student-detail-page .stage-actions {
+  gap: 12px;
+}
+
+.student-detail-page .info-grid,
+.student-detail-page .info-grid.compact {
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.student-detail-page .info-grid.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.student-detail-page .info-grid div,
+.student-detail-page .class-strip,
+.student-detail-page .score-box {
+  padding: 20px 24px;
+  border-radius: 14px;
+  background: #f7f9fc;
+}
+
+.student-detail-page .info-grid.compact div {
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+
+.student-detail-page .info-grid strong,
+.student-detail-page .score-box strong {
+  color: #172033;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.student-detail-page .info-grid.compact strong {
+  font-size: 15px;
+}
+
+.student-detail-page .record-item {
+  border-color: #eef1f5;
+  border-radius: 14px;
+  background: #f7f9fc;
+}
+
+.stage-progress {
+  display: grid;
+  gap: 0;
+}
+
+.stage-progress-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  color: #8a95a5;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.stage-progress-item::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 7px;
+  width: 2px;
+  background: #e2e8ee;
+  content: "";
+}
+
+.stage-progress-item:first-child::before {
+  top: 21px;
+}
+
+.stage-progress-item:last-child::before {
+  bottom: 21px;
+}
+
+.stage-progress-dot {
+  position: relative;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  border: 3px solid #e2e8ee;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.stage-progress-item.completed {
+  color: #16845f;
+}
+
+.stage-progress-item.completed::before {
+  background: #07c160;
+}
+
+.stage-progress-item.completed .stage-progress-dot {
+  border-color: #07c160;
+  background: #07c160;
+  box-shadow: 0 0 0 4px rgba(7, 193, 96, 0.1);
+}
+
+.student-detail-page .fixed-action {
+  bottom: 82px;
+}
+
+.student-detail-page .primary-button {
+  min-height: 48px;
+  border-radius: 14px;
+  font-size: 16px;
+}
+
+.choice-list {
+  display: grid;
+  gap: 10px;
+}
+
+.choice-list.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.choice-list button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  color: #16845f;
+  background: #e8f6f0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.choice-list button.active {
+  color: #fff;
+  background: #07c160;
+}
+
+.dialog-choice-group {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.dialog-choice-group > span {
+  color: #687386;
+  font-size: 14px;
+}
+
 .list-pane,
 .detail-pane {
   min-height: 0;
@@ -478,6 +818,44 @@ a {
 .student-card.active {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-weak);
+}
+
+.todo-student-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 86px;
+  padding: 18px 44px 18px 20px;
+  cursor: pointer;
+}
+
+.todo-student-card > div {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.todo-student-card strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 18px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.todo-student-card span {
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.todo-student-card .chevron {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
 }
 
 .student-card-meta {
@@ -958,6 +1336,166 @@ a {
   margin: 0 auto;
 }
 
+.data-page {
+  padding-top: 22px;
+}
+
+.data-page-back {
+  margin-bottom: var(--space-3);
+  font-size: 17px;
+}
+
+.data-page-back .app-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.data-period-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.period-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #f2f5f6;
+}
+
+.period-tabs button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 999px;
+  color: #687386;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.period-tabs button.active {
+  color: #fff;
+  background: #07c160;
+}
+
+.period-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.period-switcher button {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  color: #16845f;
+  background: #e8f6f0;
+}
+
+.period-switcher .app-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.period-switcher strong {
+  color: #172033;
+  font-size: 18px;
+}
+
+.amount-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.amount-card {
+  padding: 16px;
+  border-radius: 14px;
+  background: #f7f9fc;
+}
+
+.amount-card span,
+.amount-card em {
+  display: block;
+  color: #687386;
+  font-size: 13px;
+  font-style: normal;
+}
+
+.amount-card strong {
+  display: block;
+  margin: 8px 0 4px;
+  color: #172033;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.amount-card:first-child {
+  background: #e8f6f0;
+}
+
+.amount-card:first-child strong {
+  color: #07c160;
+}
+
+.funnel-list {
+  display: grid;
+  gap: 12px;
+}
+
+.funnel-row {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 72px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #f7f9fc;
+}
+
+.funnel-row > * {
+  position: relative;
+  z-index: 1;
+}
+
+.funnel-row strong,
+.funnel-row span {
+  display: block;
+}
+
+.funnel-row strong {
+  color: #172033;
+  font-size: 16px;
+}
+
+.funnel-row span {
+  margin-top: 4px;
+  color: #687386;
+  font-size: 12px;
+}
+
+.funnel-row em {
+  color: #16845f;
+  font-size: 22px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.funnel-row i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 14px;
+  background: rgba(7, 193, 96, 0.1);
+}
+
 .status-panel {
   color: var(--color-primary);
   background: var(--color-primary-weak);
@@ -1304,6 +1842,20 @@ button.home-card {
   min-width: 0;
   padding: 8px 4px;
   border: 0;
+  border-radius: 14px;
+}
+
+.todo-filter-card .reminder-grid {
+  padding-top: 24px;
+}
+
+.todo-filter-card .reminder-grid button.active {
+  background: rgba(7, 193, 96, 0.08);
+}
+
+.todo-filter-card .reminder-grid button.active span,
+.todo-filter-card .reminder-grid button.active strong {
+  color: #07c160;
 }
 
 .reminder-grid span {
@@ -1852,6 +2404,61 @@ button.home-card {
     padding-top: 18px;
   }
 
+  .todo-workspace {
+    padding-top: 18px;
+  }
+
+  .student-detail-page {
+    padding-top: 18px;
+  }
+
+  .data-page {
+    padding-top: 18px;
+  }
+
+  .student-detail-page .profile-panel,
+  .student-detail-page .panel {
+    padding: 24px 20px;
+    border-radius: 14px;
+  }
+
+  .student-detail-page .student-profile-summary {
+    gap: 16px;
+  }
+
+  .student-detail-page .student-profile-avatar {
+    width: 64px;
+    height: 64px;
+  }
+
+  .student-detail-page .eyebrow {
+    font-size: 14px;
+  }
+
+  .student-detail-page .profile-panel h2,
+  .student-detail-page .panel-header h2 {
+    font-size: 20px;
+  }
+
+  .student-detail-page .profile-panel p {
+    font-size: 16px;
+  }
+
+  .student-detail-page .student-basic-tags span {
+    min-height: 28px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  .student-detail-page .current-task {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .student-detail-page .current-task strong {
+    font-size: 20px;
+  }
+
   .profile-page {
     padding-top: 18px;
   }
@@ -2067,5 +2674,9 @@ button.home-card {
 
   .profile-info-row {
     grid-template-columns: 82px minmax(0, 1fr);
+  }
+
+  .student-detail-page .info-grid.compact {
+    grid-template-columns: 1fr;
   }
 }
