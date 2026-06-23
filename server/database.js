@@ -374,6 +374,16 @@ export function getStudent(id) {
   return studentFromRow(db.prepare('SELECT * FROM students WHERE id = ?').get(id))
 }
 
+export function findStudentByName(name) {
+  const target = String(name || '').trim()
+  if (!target) return null
+  const rows = db.prepare('SELECT * FROM students').all()
+  const matches = rows
+    .map(studentFromRow)
+    .filter((student) => student?.name?.trim() === target)
+  return matches.length === 1 ? matches[0] : null
+}
+
 export function bindExternalContact({ corpId, externalUserid, studentId, displayName }) {
   const student = getStudent(studentId)
   if (!student || !corpId || !externalUserid) return null

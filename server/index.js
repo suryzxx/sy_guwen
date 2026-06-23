@@ -9,6 +9,7 @@ import {
   createSession,
   completeStudentTask,
   dbPath,
+  findStudentByName,
   findOrCreatePlanner,
   getPlannerByToken,
   getStudent,
@@ -138,6 +139,37 @@ async function getWecomIdentity(code) {
   return { userid, mobile: user.mobile, unionid: user.unionid, name: user.name }
 }
 
+async function getExternalContact(externalUserid) {
+  const accessToken = await getAccessToken()
+  const contactUrl = new URL('https://qyapi.weixin.qq.com/cgi-bin/externalcontact/get')
+  contactUrl.searchParams.set('access_token', accessToken)
+  contactUrl.searchParams.set('external_userid', externalUserid)
+  const data = await fetch(contactUrl).then((response) => response.json())
+  if (data.errcode) throw Object.assign(new Error(data.errmsg), { status: 502 })
+  return data
+}
+
+async function autoBindExternalContact(externalUserid) {
+  const contact = await getExternalContact(externalUserid)
+  const names = [
+    contact.external_contact?.name,
+    ...(contact.follow_user || []).map((item) => item.remark)
+  ].filter(Boolean)
+
+  for (const name of names) {
+    const student = findStudentByName(name)
+    if (student) {
+      return bindExternalContact({
+        corpId: CORP_ID,
+        externalUserid,
+        studentId: student.id,
+        displayName: name
+      })
+    }
+  }
+  return null
+}
+
 function requirePlanner(req, res) {
   const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '')
   const planner = token && getPlannerByToken(token)
@@ -185,7 +217,9 @@ async function handleRequest(req, res) {
       const { externalUserid } = await readJson(req)
       if (!externalUserid) return sendJson(res, 400, { error: 'Missing externalUserid' })
       const binding = getStudentByExternalUserid(CORP_ID, externalUserid)
-      return binding ? sendJson(res, 200, binding) : sendJson(res, 404, { error: 'External contact is not bound' })
+      if (binding) return sendJson(res, 200, binding)
+      const autoBinding = await autoBindExternalContact(externalUserid)
+      return autoBinding ? sendJson(res, 200, autoBinding) : sendJson(res, 404, { error: 'External contact is not bound' })
     }
 
     if (req.method === 'POST' && path === '/wecom/external-contact/bind') {
