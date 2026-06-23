@@ -16,8 +16,22 @@
         </p>
 
         <div class="debug-steps">
-          <article class="debug-step" :class="externalUserid ? 'ok' : 'error'">
-            <span>1</span>
+          <article
+            v-for="(step, index) in sdkSteps"
+            :key="step.key || index"
+            class="debug-step"
+            :class="step.status"
+          >
+            <span>{{ index + 1 }}</span>
+            <div>
+              <strong>{{ step.title }}</strong>
+              <p>{{ step.message }}</p>
+              <pre v-if="step.detail" class="debug-detail">{{ formatDetail(step.detail) }}</pre>
+            </div>
+          </article>
+
+          <article class="debug-step" :class="externalUserid ? 'ok' : externalError ? 'error' : ''">
+            <span>{{ sdkSteps.length + 1 }}</span>
             <div>
               <strong>当前外部联系人 ID</strong>
               <p>{{ externalUserid || externalError || '正在获取 external_userid...' }}</p>
@@ -25,7 +39,7 @@
           </article>
 
           <article class="debug-step" :class="contactLookupClass">
-            <span>2</span>
+            <span>{{ sdkSteps.length + 2 }}</span>
             <div>
               <strong>后端查询企微客户详情</strong>
               <p>{{ contactLookupText }}</p>
@@ -34,7 +48,7 @@
           </article>
 
           <article class="debug-step" :class="studentMatchClass">
-            <span>3</span>
+            <span>{{ sdkSteps.length + 3 }}</span>
             <div>
               <strong>学生绑定 / 姓名匹配</strong>
               <p>{{ studentMatchText }}</p>
@@ -60,7 +74,7 @@ import { useRouter } from 'vue-router'
 import AppIcon from '../components/AppIcon.vue'
 import AppShell from '../components/AppShell.vue'
 import { useWorkbenchStore } from '../stores/workbench'
-import { debugExternalContactStudent, getCurrentExternalUserid } from '../api/wecom'
+import { debugExternalContactStudent, inspectCurrentExternalContact } from '../api/wecom'
 
 const router = useRouter()
 const store = useWorkbenchStore()
@@ -68,11 +82,18 @@ const loading = ref(true)
 const externalUserid = ref('')
 const externalError = ref('')
 const debugResult = ref(null)
+const sdkSteps = ref([])
 
 onMounted(async () => {
   try {
     if (!store.user) await store.bootstrap()
-    externalUserid.value = await getCurrentExternalUserid()
+    const inspectResult = await inspectCurrentExternalContact()
+    sdkSteps.value = inspectResult.steps || []
+    externalUserid.value = inspectResult.externalUserid || ''
+    if (!externalUserid.value) {
+      externalError.value = sdkSteps.value.find((step) => step.status === 'error')?.message || '未能获取企微当前外部联系人'
+      return
+    }
     debugResult.value = await debugExternalContactStudent(externalUserid.value)
   } catch (error) {
     externalError.value = error?.message || error?.error || '未能获取企微当前外部联系人'
@@ -85,6 +106,10 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+function formatDetail(detail) {
+  return typeof detail === 'string' ? detail : JSON.stringify(detail, null, 2)
+}
 
 const contactLookupClass = computed(() => {
   if (!externalUserid.value || loading.value) return ''
