@@ -1,7 +1,40 @@
 import { createServer } from 'node:http'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
+import { existsSync, readFileSync } from 'node:fs'
 import { URL } from 'node:url'
-import { classes, notifications, orders, students, trackRecords } from '../src/mock/data.js'
+import {
+  addTrackRecord,
+  bindExternalContact,
+  createOrder,
+  createSession,
+  completeStudentTask,
+  dbPath,
+  findOrCreatePlanner,
+  getPlannerByToken,
+  getStudent,
+  getStudentByExternalUserid,
+  getStudentTasks,
+  getStageHistory,
+  getTrackRecords,
+  getWorkbench,
+  pushOrder,
+  updateStudentEvaluation,
+  updateStudentStage
+} from './database.js'
+
+function loadLocalEnv() {
+  for (const file of ['.env.local', '.env.development']) {
+    if (!existsSync(file)) continue
+    const lines = readFileSync(file, 'utf8').split(/\r?\n/)
+    for (const line of lines) {
+      const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/)
+      if (!match || process.env[match[1]] !== undefined) continue
+      process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '')
+    }
+  }
+}
+
+loadLocalEnv()
 
 const PORT = Number(process.env.PORT || 8787)
 const HOST = process.env.HOST || '127.0.0.1'
@@ -9,27 +42,9 @@ const CORP_ID = process.env.WECOM_CORP_ID || ''
 const AGENT_ID = process.env.WECOM_AGENT_ID || ''
 const CORP_SECRET = process.env.WECOM_CORP_SECRET || ''
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*'
-const OAUTH_SCOPE = process.env.WECOM_OAUTH_SCOPE || 'snsapi_base'
-
-let accessTokenCache = null
-const sessions = new Map()
-const state = {
-  students: clone(students),
-  classes: clone(classes),
-  trackRecords: clone(trackRecords),
-  orders: clone(orders),
-  notifications: clone(notifications)
-}
-
-function clone(data) {
-  return JSON.parse(JSON.stringify(data))
-}
-
-function nowText() {
-  const now = new Date()
-  const pad = (value) => String(value).padStart(2, '0')
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
-}
+let accessTokenCache
+let jsapiTicketCache
+let agentTicketCache
 
 function sendJson(res, status, data) {
   res.writeHead(status, {
@@ -41,24 +56,15 @@ function sendJson(res, status, data) {
   res.end(JSON.stringify(data))
 }
 
-function sendError(res, status, message, details) {
-  sendJson(res, status, { error: message, details })
-}
-
 async function readJson(req) {
   const chunks = []
   for await (const chunk of req) chunks.push(chunk)
-  if (!chunks.length) return {}
-  return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  return chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {}
 }
 
 function requireWecomConfig() {
-  const missing = []
-  if (!CORP_ID) missing.push('WECOM_CORP_ID')
-  if (!AGENT_ID) missing.push('WECOM_AGENT_ID')
-  if (!CORP_SECRET) missing.push('WECOM_CORP_SECRET')
-  if (missing.length) {
-    const error = new Error(`Missing env: ${missing.join(', ')}`)
+  if (!CORP_ID || !AGENT_ID || !CORP_SECRET) {
+    const error = new Error('缺少企业微信配置')
     error.status = 500
     throw error
   }
@@ -66,225 +72,193 @@ function requireWecomConfig() {
 
 async function getAccessToken() {
   requireWecomConfig()
-  if (accessTokenCache && accessTokenCache.expiresAt > Date.now() + 60_000) {
-    return accessTokenCache.token
-  }
-
+  if (accessTokenCache?.expiresAt > Date.now() + 60_000) return accessTokenCache.token
   const url = new URL('https://qyapi.weixin.qq.com/cgi-bin/gettoken')
   url.searchParams.set('corpid', CORP_ID)
   url.searchParams.set('corpsecret', CORP_SECRET)
-
-  const response = await fetch(url)
-  const data = await response.json()
-  if (data.errcode !== 0) {
-    const error = new Error(data.errmsg || 'Failed to get WeCom access_token')
-    error.status = 502
-    error.details = data
-    throw error
-  }
-
-  accessTokenCache = {
-    token: data.access_token,
-    expiresAt: Date.now() + (Number(data.expires_in || 7200) - 120) * 1000
-  }
-  return accessTokenCache.token
+  const data = await fetch(url).then((response) => response.json())
+  if (data.errcode) throw Object.assign(new Error(data.errmsg), { status: 502 })
+  accessTokenCache = { token: data.access_token, expiresAt: Date.now() + 7_000_000 }
+  return data.access_token
 }
 
-async function getWecomUserInfo(code) {
-  if (!code) {
-    const error = new Error('Missing WeCom auth code')
-    error.status = 400
-    throw error
-  }
-
+async function getTicket(type = 'jsapi') {
+  const cache = type === 'agent_config' ? agentTicketCache : jsapiTicketCache
+  if (cache?.expiresAt > Date.now() + 60_000) return cache.ticket
   const accessToken = await getAccessToken()
-  const url = new URL('https://qyapi.weixin.qq.com/cgi-bin/auth/getuserinfo')
-  url.searchParams.set('access_token', accessToken)
-  url.searchParams.set('code', code)
-
-  const response = await fetch(url)
-  const data = await response.json()
-  if (data.errcode !== 0) {
-    const error = new Error(data.errmsg || 'Failed to get WeCom user info')
-    error.status = 502
-    error.details = data
-    throw error
-  }
-  return data
+  const ticketUrl = type === 'agent_config'
+    ? new URL('https://qyapi.weixin.qq.com/cgi-bin/ticket/get')
+    : new URL('https://qyapi.weixin.qq.com/cgi-bin/get_jsapi_ticket')
+  ticketUrl.searchParams.set('access_token', accessToken)
+  if (type === 'agent_config') ticketUrl.searchParams.set('type', 'agent_config')
+  const data = await fetch(ticketUrl).then((response) => response.json())
+  if (data.errcode) throw Object.assign(new Error(data.errmsg), { status: 502 })
+  const next = { ticket: data.ticket, expiresAt: Date.now() + 7_000_000 }
+  if (type === 'agent_config') agentTicketCache = next
+  else jsapiTicketCache = next
+  return data.ticket
 }
 
-function getSession(req) {
-  const authorization = req.headers.authorization || ''
-  const token = authorization.replace(/^Bearer\s+/i, '')
-  return token ? sessions.get(token) : null
+function signJsapi(ticket, nonceStr, timestamp, pageUrl) {
+  return createHash('sha1')
+    .update(`jsapi_ticket=${ticket}&noncestr=${nonceStr}&timestamp=${timestamp}&url=${pageUrl}`)
+    .digest('hex')
 }
 
-function ensureSession(req, res) {
-  const session = getSession(req)
-  if (!session) {
-    sendError(res, 401, 'Unauthorized')
-    return null
+async function createJsConfig(pageUrl) {
+  requireWecomConfig()
+  const timestamp = Math.floor(Date.now() / 1000)
+  const nonceStr = randomUUID().replace(/-/g, '')
+  const [jsapiTicket, agentTicket] = await Promise.all([getTicket(), getTicket('agent_config')])
+  return {
+    corpId: CORP_ID,
+    agentId: AGENT_ID,
+    timestamp,
+    nonceStr,
+    signature: signJsapi(jsapiTicket, nonceStr, timestamp, pageUrl),
+    agentSignature: signJsapi(agentTicket, nonceStr, timestamp, pageUrl),
+    jsApiList: ['getCurExternalContact']
   }
-  return session
+}
+
+async function getWecomIdentity(code) {
+  const accessToken = await getAccessToken()
+  const authUrl = new URL('https://qyapi.weixin.qq.com/cgi-bin/auth/getuserinfo')
+  authUrl.searchParams.set('access_token', accessToken)
+  authUrl.searchParams.set('code', code)
+  const auth = await fetch(authUrl).then((response) => response.json())
+  if (auth.errcode) throw Object.assign(new Error(auth.errmsg), { status: 502 })
+
+  const userid = auth.userid || auth.UserId
+  if (!userid) return { userid: auth.open_userid }
+  const userUrl = new URL('https://qyapi.weixin.qq.com/cgi-bin/user/get')
+  userUrl.searchParams.set('access_token', accessToken)
+  userUrl.searchParams.set('userid', userid)
+  const user = await fetch(userUrl).then((response) => response.json())
+  return { userid, mobile: user.mobile, unionid: user.unionid, name: user.name }
+}
+
+function requirePlanner(req, res) {
+  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '')
+  const planner = token && getPlannerByToken(token)
+  if (!planner) sendJson(res, 401, { error: 'Unauthorized' })
+  return planner
 }
 
 async function handleRequest(req, res) {
-  if (req.method === 'OPTIONS') {
-    sendJson(res, 204, {})
-    return
-  }
-
+  if (req.method === 'OPTIONS') return sendJson(res, 204, {})
   const url = new URL(req.url, `http://${req.headers.host}`)
-  const pathname = url.pathname
+  const path = url.pathname
 
   try {
-    if (req.method === 'GET' && pathname === '/health') {
-      sendJson(res, 200, { ok: true })
-      return
-    }
+    if (req.method === 'GET' && path === '/health') return sendJson(res, 200, { ok: true, database: dbPath })
 
-    if (req.method === 'GET' && pathname === '/wecom/oauth-url') {
+    if (req.method === 'GET' && path === '/wecom/oauth-url') {
       requireWecomConfig()
-      const redirectUri = url.searchParams.get('redirect_uri')
-      if (!redirectUri) {
-        sendError(res, 400, 'Missing redirect_uri')
-        return
-      }
       const oauthUrl = new URL('https://open.weixin.qq.com/connect/oauth2/authorize')
       oauthUrl.searchParams.set('appid', CORP_ID)
-      oauthUrl.searchParams.set('redirect_uri', redirectUri)
+      oauthUrl.searchParams.set('redirect_uri', url.searchParams.get('redirect_uri'))
       oauthUrl.searchParams.set('response_type', 'code')
-      oauthUrl.searchParams.set('scope', OAUTH_SCOPE)
+      oauthUrl.searchParams.set('scope', 'snsapi_base')
       oauthUrl.searchParams.set('agentid', AGENT_ID)
       oauthUrl.searchParams.set('state', randomUUID())
-      sendJson(res, 200, { url: `${oauthUrl.toString()}#wechat_redirect` })
-      return
+      return sendJson(res, 200, { url: `${oauthUrl}#wechat_redirect` })
     }
 
-    if (req.method === 'POST' && pathname === '/wecom/login') {
-      const { code } = await readJson(req)
-      const wecomUser = await getWecomUserInfo(code)
-      const token = randomUUID()
-      const userId = wecomUser.userid || wecomUser.UserId || wecomUser.open_userid || 'wecom-user'
-      const user = {
-        id: userId,
-        name: userId,
-        roleName: '课程顾问',
-        campus: '企微登录'
-      }
-      sessions.set(token, { user, wecomUser, createdAt: Date.now() })
-      sendJson(res, 200, { token, user, wecomUser })
-      return
+    if (req.method === 'POST' && path === '/wecom/login') {
+      const body = await readJson(req)
+      const identity = body.code ? await getWecomIdentity(body.code) : body
+      const planner = findOrCreatePlanner(identity)
+      return sendJson(res, 200, { token: createSession(planner.id), user: planner })
     }
 
-    if (req.method === 'GET' && pathname === '/consultant/workbench') {
-      if (!ensureSession(req, res)) return
-      sendJson(res, 200, state)
-      return
+    const planner = requirePlanner(req, res)
+    if (!planner) return
+
+    if (req.method === 'GET' && path === '/wecom/js-config') {
+      const pageUrl = url.searchParams.get('url')
+      if (!pageUrl) return sendJson(res, 400, { error: 'Missing url' })
+      return sendJson(res, 200, await createJsConfig(pageUrl))
     }
 
-    const studentMatch = pathname.match(/^\/consultant\/students\/([^/]+)$/)
+    if (req.method === 'POST' && path === '/wecom/external-contact/resolve') {
+      const { externalUserid } = await readJson(req)
+      if (!externalUserid) return sendJson(res, 400, { error: 'Missing externalUserid' })
+      const binding = getStudentByExternalUserid(CORP_ID, externalUserid)
+      return binding ? sendJson(res, 200, binding) : sendJson(res, 404, { error: 'External contact is not bound' })
+    }
+
+    if (req.method === 'POST' && path === '/wecom/external-contact/bind') {
+      const { externalUserid, studentId, displayName } = await readJson(req)
+      if (!externalUserid || !studentId) return sendJson(res, 400, { error: 'Missing externalUserid or studentId' })
+      const binding = bindExternalContact({ corpId: CORP_ID, externalUserid, studentId, displayName })
+      return binding ? sendJson(res, 200, binding) : sendJson(res, 404, { error: 'Student not found' })
+    }
+
+    if (req.method === 'GET' && path === '/planner/workbench') {
+      return sendJson(res, 200, getWorkbench(planner.id))
+    }
+
+    const studentMatch = path.match(/^\/planner\/students\/([^/]+)$/)
     if (req.method === 'GET' && studentMatch) {
-      if (!ensureSession(req, res)) return
       const id = decodeURIComponent(studentMatch[1])
-      sendJson(res, 200, {
-        student: state.students.find((item) => item.id === id),
-        trackRecords: state.trackRecords[id] || []
+      return sendJson(res, 200, {
+        student: getStudent(id),
+        trackRecords: getTrackRecords(id),
+        tasks: getStudentTasks(id),
+        stageHistory: getStageHistory(id)
       })
-      return
     }
 
-    const trackMatch = pathname.match(/^\/consultant\/students\/([^/]+)\/track-records$/)
+    const trackMatch = path.match(/^\/planner\/students\/([^/]+)\/track-records$/)
     if (req.method === 'POST' && trackMatch) {
-      const session = ensureSession(req, res)
-      if (!session) return
-      const id = decodeURIComponent(trackMatch[1])
       const { content } = await readJson(req)
-      const record = {
-        id: `tr_${Date.now()}`,
-        content,
-        time: nowText(),
-        operator: session.user.name
-      }
-      state.trackRecords[id] = [record, ...(state.trackRecords[id] || [])]
-      sendJson(res, 200, record)
-      return
+      return sendJson(res, 200, addTrackRecord(decodeURIComponent(trackMatch[1]), content, planner.name))
     }
 
-    const statusMatch = pathname.match(/^\/consultant\/students\/([^/]+)\/evaluation-status$/)
-    if (req.method === 'PATCH' && statusMatch) {
-      if (!ensureSession(req, res)) return
-      const id = decodeURIComponent(statusMatch[1])
-      const { status } = await readJson(req)
-      const student = state.students.find((item) => item.id === id)
-      if (student) student.status = status
-      sendJson(res, 200, { ok: true })
-      return
+    const stageMatch = path.match(/^\/planner\/students\/([^/]+)\/stage$/)
+    if (req.method === 'PATCH' && stageMatch) {
+      const { stage, reason, cancellationReason, appointment } = await readJson(req)
+      const result = updateStudentStage(
+        decodeURIComponent(stageMatch[1]),
+        stage,
+        { reason, cancellationReason, appointment },
+        planner.name
+      )
+      return sendJson(res, result.status || 200, result.status ? { error: result.error } : result)
     }
 
-    if (req.method === 'POST' && pathname === '/consultant/orders') {
-      if (!ensureSession(req, res)) return
-      const payload = await readJson(req)
-      const student = state.students.find((item) => item.id === payload.studentId)
-      const classInfo = state.classes.find((item) => item.id === payload.classId)
-      if (!student || !classInfo) {
-        sendError(res, 400, 'Invalid studentId or classId')
-        return
-      }
-      const totalPrice = classInfo.coursePrice + classInfo.materialPrice
-      const order = {
-        id: `o_${Date.now()}`,
-        orderNo: `SY${Date.now()}`,
-        studentId: student.id,
-        studentName: student.name,
-        classId: classInfo.id,
-        className: classInfo.name,
-        courseType: classInfo.courseType,
-        schedule: classInfo.schedule,
-        location: classInfo.location,
-        teacher: classInfo.teacher,
-        totalLectures: classInfo.totalLectures,
-        coursePrice: classInfo.coursePrice,
-        materialPrice: classInfo.materialPrice,
-        totalPrice,
-        status: 'pending',
-        createTime: nowText()
-      }
-      state.orders.unshift(order)
-      sendJson(res, 200, order)
-      return
+    const evaluationMatch = path.match(/^\/planner\/students\/([^/]+)\/evaluation$/)
+    if (req.method === 'PATCH' && evaluationMatch) {
+      const result = updateStudentEvaluation(decodeURIComponent(evaluationMatch[1]), await readJson(req), planner.name)
+      return sendJson(res, result.status || 200, result.status ? { error: result.error } : result)
     }
 
-    const pushMatch = pathname.match(/^\/consultant\/orders\/([^/]+)\/push$/)
+    const taskMatch = path.match(/^\/planner\/tasks\/([^/]+)\/complete$/)
+    if (req.method === 'PATCH' && taskMatch) {
+      const task = completeStudentTask(decodeURIComponent(taskMatch[1]), planner.name)
+      return task ? sendJson(res, 200, task) : sendJson(res, 404, { error: 'Task not found' })
+    }
+
+    if (req.method === 'POST' && path === '/planner/orders') {
+      const { studentId, classId } = await readJson(req)
+      const order = createOrder(planner.id, studentId, classId, planner.name)
+      return order ? sendJson(res, 200, order) : sendJson(res, 400, { error: 'Invalid studentId or classId' })
+    }
+
+    const pushMatch = path.match(/^\/planner\/orders\/([^/]+)\/push$/)
     if (req.method === 'POST' && pushMatch) {
-      if (!ensureSession(req, res)) return
-      const id = decodeURIComponent(pushMatch[1])
-      const order = state.orders.find((item) => item.id === id)
-      if (!order) {
-        sendError(res, 404, 'Order not found')
-        return
-      }
-      order.status = 'pushed'
-      order.pushTime = nowText()
-      state.notifications.unshift({
-        id: `n_${Date.now()}`,
-        type: 'order',
-        title: '订单已推送给家长',
-        content: `${order.studentName}的${order.className}订单已发送到家长小程序。`,
-        time: nowText(),
-        orderId: id,
-        read: false
-      })
-      sendJson(res, 200, order)
-      return
+      const order = pushOrder(planner.id, decodeURIComponent(pushMatch[1]), planner.name)
+      return order ? sendJson(res, 200, order) : sendJson(res, 404, { error: 'Order not found' })
     }
 
-    sendError(res, 404, 'Not found')
+    sendJson(res, 404, { error: 'Not found' })
   } catch (error) {
-    sendError(res, error.status || 500, error.message || 'Server error', error.details)
+    sendJson(res, error.status || 500, { error: error.message || 'Server error' })
   }
 }
 
 createServer(handleRequest).listen(PORT, HOST, () => {
-  console.log(`WeCom test API listening on http://${HOST}:${PORT}`)
+  console.log(`Planner API: http://${HOST}:${PORT}`)
+  console.log(`SQLite: ${dbPath}`)
 })

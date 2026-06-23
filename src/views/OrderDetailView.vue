@@ -62,9 +62,9 @@ onMounted(async () => {
 const order = computed(() => store.orderById(route.params.id))
 const statusTitle = computed(() => ({ pending: '待推送', pushed: '等待家长支付', paid: '家长已支付' }[order.value?.status] || '订单处理中'))
 const statusDesc = computed(() => {
-  if (order.value?.status === 'pending') return '顾问确认后推送给家长，家长将在微信小程序完成支付。'
+  if (order.value?.status === 'pending') return '规划师确认后推送给家长，家长将在微信小程序完成支付。'
   if (order.value?.status === 'pushed') return '订单已推送给家长，支付状态由统一后端回传。'
-  return '企业微信已通知顾问支付完成。'
+  return '企业微信已通知规划师支付完成。'
 })
 
 async function push() {

@@ -83,13 +83,13 @@ const selectedClassId = ref('')
 
 onMounted(async () => {
   if (!store.students.length) await store.bootstrap()
-  selectedStudentId.value = route.query.studentId || store.testedStudents[0]?.id || ''
+  selectedStudentId.value = route.query.studentId || store.assessedStudents[0]?.id || ''
   selectedClassId.value = store.classes[0]?.id || ''
 })
 
 const candidateStudents = computed(() => {
   const term = keyword.value.trim().toLowerCase()
-  return store.testedStudents.filter((student) => {
+  return store.assessedStudents.filter((student) => {
     const canEnroll = student.evaluationResult
     const matchKeyword = !term || student.name.toLowerCase().includes(term) || student.phone.includes(term)
     return canEnroll && matchKeyword

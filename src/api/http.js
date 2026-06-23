@@ -7,7 +7,7 @@ const http = axios.create({
 })
 
 http.interceptors.request.use((config) => {
-  const token = localStorage.getItem('consultant_token')
+  const token = localStorage.getItem('planner_token')
   if (token) {
     config.headers.Authorization = token
   }

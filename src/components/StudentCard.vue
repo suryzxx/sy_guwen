@@ -1,59 +1,64 @@
 <template>
   <article class="student-card" :class="{ active }" @click="$emit('select', student)">
     <div class="card-title-row">
-      <div>
+      <div class="student-card-heading">
+        <img v-if="avatarSrc" class="student-card-avatar" :src="avatarSrc" :alt="`${student.name}头像`" />
+        <span v-else class="student-card-avatar avatar-fallback">{{ student.name.slice(0, 1) }}</span>
+      </div>
+      <div class="student-card-copy">
         <strong>{{ student.name }}</strong>
         <span>{{ student.currentGrade }} · {{ student.campus }}</span>
+        <span>{{ student.phone }}</span>
       </div>
-      <span class="chevron">›</span>
+      <span class="chevron">
+        <AppIcon name="chevron-right" />
+      </span>
     </div>
-    <div class="muted-line">{{ student.phone }} · {{ student.school }}</div>
-    <div v-if="student.appointment?.date && student.appointment.date !== '-'" class="muted-line">
-      {{ student.appointment.date }} {{ student.appointment.time }} · {{ student.appointment.teacher }}
+    <div v-if="task" class="student-task-row">
+      <div>
+        <span>当前待办</span>
+        <strong>{{ task.title }}</strong>
+      </div>
+      <span class="task-deadline">
+        截止 {{ compactDeadline }}
+      </span>
     </div>
-    <div v-if="student.className" class="muted-line">班级：{{ student.className }}</div>
-    <div class="card-meta">
-      <span class="status-pill" :class="statusClass">{{ statusText }}</span>
-      <button v-if="actionText" class="text-action" type="button" @click.stop="$emit('action', student)">
-        {{ actionText }}
-      </button>
+    <div class="student-card-meta">
+      <span>{{ stageLabel(student.stage) }}</span>
+      <span v-if="student.stageEnteredAt">停留 {{ stageDuration }}</span>
     </div>
   </article>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import AppIcon from './AppIcon.vue'
+import { stageLabel } from '../../shared/student-workflow.js'
 
 const props = defineProps({
   student: { type: Object, required: true },
-  active: { type: Boolean, default: false },
-  mode: { type: String, default: 'evaluation' }
+  task: { type: Object, default: null },
+  active: { type: Boolean, default: false }
 })
 
-defineEmits(['select', 'action'])
+defineEmits(['select'])
 
-const statusMap = {
-  pending: '待到访',
-  arrived: '已到访',
-  tested: '已评测',
-  cancelled: '已取消',
-  to_add: '待添加',
-  new_resource: '已添加',
-  potential: '待激活',
-  history: '历史学生',
-  serving: '服务中',
-  active: '在读学生',
-  presale: '预售学生'
-}
+const compactDeadline = computed(() => {
+  if (!props.task?.dueAt) return '未设置'
+  return props.task.dueAt.slice(5)
+})
 
-const currentStatus = computed(() => props.student.status || props.student.leadStatus || props.student.studentStatus)
-const statusText = computed(() => statusMap[currentStatus.value] || '未分类')
-const statusClass = computed(() => `status-${currentStatus.value}`)
-const actionText = computed(() => {
-  if (props.student.status === 'pending') return '签到'
-  if (props.student.status === 'arrived') return '分配试卷'
-  if (props.student.status === 'tested' && props.student.evaluationResult) return '创建订单'
-  if (props.student.status === 'cancelled' || props.mode !== 'evaluation') return '联系客户'
-  return ''
+const avatarSrc = computed(() => {
+  if (!props.student.avatar) return ''
+  return `${import.meta.env.BASE_URL}${props.student.avatar.replace(/^\/+/, '')}`
+})
+
+const stageDuration = computed(() => {
+  if (!props.student.stageEnteredAt) return '未知'
+  const startedAt = new Date(props.student.stageEnteredAt.replace(' ', 'T')).getTime()
+  if (!Number.isFinite(startedAt)) return '未知'
+  const hours = Math.max(0, Math.floor((Date.now() - startedAt) / 3_600_000))
+  if (hours < 24) return `${hours}小时`
+  return `${Math.floor(hours / 24)}天`
 })
 </script>
