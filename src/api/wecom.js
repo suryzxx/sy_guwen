@@ -39,6 +39,12 @@ function safeDetail(detail) {
   }
 }
 
+const EXTERNAL_CONTACT_INVOKE_OPTIONS = [
+  { label: '默认参数', params: {} },
+  { label: '客户联系聊天工具栏', params: { entry: 'single_chat_tools' } },
+  { label: '客户详情入口', params: { entry: 'contact_profile' } }
+]
+
 async function configureWecomSdk(wx) {
   const config = await http.get('/wecom/js-config', { params: { url: currentSignatureUrl() } })
   await new Promise((resolve, reject) => {
@@ -70,13 +76,28 @@ async function configureWecomSdk(wx) {
   })
 }
 
-function invokeCurrentExternalContact(wx) {
-  return new Promise((resolve, reject) => {
-    wx.invoke('getCurExternalContact', {}, (res) => {
-      if (res.err_msg === 'getCurExternalContact:ok' && res.userId) resolve(res.userId)
-      else reject(new Error(res.err_msg || '未获取到当前外部联系人'))
+function invokeExternalContactOnce(wx, params) {
+  return new Promise((resolve) => {
+    wx.invoke('getCurExternalContact', params, (res) => {
+      resolve(res)
     })
   })
+}
+
+async function invokeCurrentExternalContact(wx) {
+  const attempts = []
+  for (const option of EXTERNAL_CONTACT_INVOKE_OPTIONS) {
+    const result = await invokeExternalContactOnce(wx, option.params)
+    attempts.push({ label: option.label, params: option.params, result })
+    if (result?.err_msg === 'getCurExternalContact:ok' && result.userId) {
+      return { externalUserid: result.userId, attempts }
+    }
+  }
+  const lastResult = attempts[attempts.length - 1]?.result
+  const error = new Error(normalizeWecomError(lastResult, '未获取到当前外部联系人'))
+  error.attempts = attempts
+  error.result = lastResult
+  throw error
 }
 
 export async function getCurrentExternalUserid() {
@@ -84,7 +105,8 @@ export async function getCurrentExternalUserid() {
   if (debugUserid) return debugUserid
   const wx = await loadWecomSdk()
   await configureWecomSdk(wx)
-  return invokeCurrentExternalContact(wx)
+  const result = await invokeCurrentExternalContact(wx)
+  return result.externalUserid
 }
 
 export async function inspectCurrentExternalContact() {
@@ -171,21 +193,26 @@ export async function inspectCurrentExternalContact() {
   }
 
   try {
-    const invokeResult = await new Promise((resolve, reject) => {
-      wx.invoke('getCurExternalContact', {}, (res) => {
-        if (res.err_msg === 'getCurExternalContact:ok' && res.userId) resolve(res)
-        else reject(res)
-      })
-    })
-    pushStep('get-cur-external-contact', 'getCurExternalContact', 'ok', `已取得 external_userid：${invokeResult.userId}`, invokeResult)
-    return { externalUserid: invokeResult.userId, steps }
+    const invokeResult = await invokeCurrentExternalContact(wx)
+    pushStep('get-cur-external-contact', 'getCurExternalContact', 'ok', `已取得 external_userid：${invokeResult.externalUserid}`, invokeResult)
+    return { externalUserid: invokeResult.externalUserid, steps }
   } catch (error) {
+    const attempts = error.attempts || []
+    for (const [index, attempt] of attempts.entries()) {
+      pushStep(
+        `get-cur-external-contact-${index + 1}`,
+        `getCurExternalContact - ${attempt.label}`,
+        'error',
+        normalizeWecomError(attempt.result, '未获取到当前外部联系人'),
+        { params: attempt.params, result: attempt.result }
+      )
+    }
     pushStep(
       'get-cur-external-contact',
       'getCurExternalContact',
       'error',
-      normalizeWecomError(error, '未获取到当前外部联系人'),
-      error
+      '所有调用方式都被企业微信拒绝。wx.config 和 wx.agentConfig 已通过，剩余问题是客户联系 JSAPI 权限或入口上下文。请在企业微信后台确认该应用已被配置为客户联系聊天工具栏，并且当前入口来自外部联系人单聊。',
+      error.result || error
     )
     return { externalUserid: '', steps }
   }
