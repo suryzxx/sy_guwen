@@ -41,15 +41,14 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useWorkbenchStore } from '../stores/workbench'
 import AppIcon from './AppIcon.vue'
 
 const store = useWorkbenchStore()
 const route = useRoute()
-const router = useRouter()
 const { user, unreadCount } = storeToRefs(store)
 
 const navItems = computed(() => [
@@ -65,10 +64,4 @@ const mobileItems = computed(() => [
   { to: '/contacts', label: '通讯录', icon: 'contacts', active: route.path === '/contacts' },
   { to: '/profile', label: '我的', icon: 'profile', active: route.path === '/profile' }
 ])
-
-watch(user, async (value) => {
-  if (!value) return
-  const student = await store.resolveSidebarContact()
-  if (student && route.name !== 'student-detail') router.replace(`/students/${student.id}`)
-}, { immediate: true })
 </script>
