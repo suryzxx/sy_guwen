@@ -10,7 +10,7 @@ import ContactsView from '../views/ContactsView.vue'
 import WecomDebugView from '../views/WecomDebugView.vue'
 
 const routes = [
-  { path: '/', redirect: '/workbench' },
+  { path: '/', name: 'home', component: WorkbenchView, meta: { title: '学生管理' } },
   { path: '/workbench', name: 'workbench', component: WorkbenchView, meta: { title: '学生管理' } },
   { path: '/contacts', name: 'contacts', component: ContactsView, meta: { title: '通讯录' } },
   { path: '/students/:id', name: 'student-detail', component: StudentDetailView, meta: { title: '学生详情' } },
