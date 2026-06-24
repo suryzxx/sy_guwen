@@ -26,6 +26,7 @@ export const useWorkbenchStore = defineStore('workbench', {
     sidebarExternalUserid: '',
     sidebarStudent: null,
     sidebarContactChecked: false,
+    showInlineWecomDebug: false,
     loading: false
   }),
   getters: {
@@ -65,6 +66,12 @@ export const useWorkbenchStore = defineStore('workbench', {
       } catch {
         return null
       }
+    },
+    openInlineWecomDebug() {
+      this.showInlineWecomDebug = true
+    },
+    closeInlineWecomDebug() {
+      this.showInlineWecomDebug = false
     },
     async loadStudent(id) {
       const data = await fetchStudentDetail(id)

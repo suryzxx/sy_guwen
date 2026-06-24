@@ -29,15 +29,23 @@ router.beforeEach(async (to) => {
   try {
     if (!store.user) await store.bootstrap()
     if (isWecomClient) {
-      if (openWecomDebug) return { path: '/wecom-debug', replace: true }
+      if (openWecomDebug) {
+        store.openInlineWecomDebug()
+        return true
+      }
       const student = await store.resolveSidebarContact()
       if (student?.id) {
+        store.closeInlineWecomDebug()
         return { path: `/students/${student.id}`, replace: true, query: { from: 'sidebar' } }
       }
-      return { path: '/wecom-debug', replace: true }
+      store.openInlineWecomDebug()
+      return true
     }
   } catch {
-    if (isWecomClient) return { path: '/wecom-debug', replace: true }
+    if (isWecomClient) {
+      store.openInlineWecomDebug()
+      return true
+    }
   }
   return true
 })
