@@ -256,6 +256,8 @@ function seed() {
     }
   }
 
+  ensureExternalContactStudent()
+
   const legacyRows = db.prepare('SELECT * FROM students').all()
   for (const row of legacyRows) {
     const student = parse(row)
@@ -318,6 +320,139 @@ function seed() {
     const notice = { id: 'n001', type: 'payment', title: '家长已完成支付', content: `${student.name}的${classInfo.name}订单已支付成功。`, time: '2026-06-18 11:03', orderId: order.id, read: false }
     db.prepare('INSERT INTO notifications VALUES (?, ?, ?, ?)').run(notice.id, 'p001', 0, JSON.stringify(notice))
   }
+}
+
+function ensureExternalContactStudent() {
+  const id = 's_external_001'
+  const enteredAt = '2026-06-24 15:30'
+  const existing = studentFromRow(db.prepare('SELECT * FROM students WHERE id = ?').get(id))
+  const student = {
+    ...(existing || {}),
+    id,
+    name: '一只猪',
+    avatar: existing?.avatar || 'avatars/student-10.png',
+    phone: '13926860001',
+    gender: 'male',
+    englishName: 'Peter',
+    currentGrade: '四年级',
+    school: '南京市实验小学',
+    city: '南京',
+    campus: '南京校区',
+    source: '企微外部联系人',
+    guardian: {
+      name: '朱女士',
+      relation: '母亲',
+      phone: '13926860001',
+      wechatStatus: 'added'
+    },
+    stage: STUDENT_STAGES.PENDING_LEVEL,
+    serviceStatus: SERVICE_STATUSES.NOT_STARTED,
+    stageEnteredAt: enteredAt,
+    appointment: {
+      date: '2026-06-23',
+      time: '15:30',
+      campus: '南京校区',
+      teacher: 'Lily老师'
+    },
+    evaluationScores: {
+      totalScore: 76,
+      fullScore: 100,
+      listening: 18,
+      reading: 24,
+      grammar: 16,
+      speaking: 18
+    },
+    assessmentSummary: {
+      paper: '英语基础诊断卷 B',
+      strengths: ['听力反应快', '课堂配合度高', '词汇量基础较好'],
+      weaknesses: ['长篇阅读定位偏慢', '语法稳定性不足', '口语表达完整度需要提升'],
+      teacherComment: '学生已完成现场评测，整体配合度较好，适合先完成定级后匹配秋季体系课。'
+    },
+    interests: ['动画', '自然科学', '英语绘本'],
+    learningGoal: '希望暑期后进入体系课，重点提升阅读理解和口语表达。',
+    cancellationReason: ''
+  }
+
+  db.prepare(`
+    INSERT INTO students (id, primary_type, status, data, stage, service_status, stage_entered_at, cancellation_reason)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      primary_type = excluded.primary_type,
+      status = excluded.status,
+      data = excluded.data,
+      stage = excluded.stage,
+      service_status = excluded.service_status,
+      stage_entered_at = excluded.stage_entered_at,
+      cancellation_reason = excluded.cancellation_reason
+  `).run(
+    id,
+    STAGE_META[STUDENT_STAGES.PENDING_LEVEL].group,
+    STUDENT_STAGES.PENDING_LEVEL,
+    JSON.stringify(student),
+    STUDENT_STAGES.PENDING_LEVEL,
+    SERVICE_STATUSES.NOT_STARTED,
+    enteredAt,
+    ''
+  )
+
+  ensureHistory('history_s_external_001_added', id, null, STUDENT_STAGES.ADDED, '已添加企微并完成初步沟通', '系统', '2026-06-23 12:00')
+  ensureHistory('history_s_external_001_pending_visit', id, STUDENT_STAGES.ADDED, STUDENT_STAGES.PENDING_VISIT, '已预约到访评测', '规划师Ella', '2026-06-23 20:10')
+  ensureHistory('history_s_external_001_visited', id, STUDENT_STAGES.PENDING_VISIT, STUDENT_STAGES.VISITED, '学生已到访签到', '规划师Ella', '2026-06-24 15:20')
+  ensureHistory('history_s_external_001_pending_level', id, STUDENT_STAGES.VISITED, STUDENT_STAGES.PENDING_LEVEL, '已完成测试，等待录入评测等级', '测评老师Lily', enteredAt)
+
+  db.prepare("UPDATE student_tasks SET status = 'completed', completed_at = ? WHERE student_id = ? AND status = 'pending' AND task_type <> ?")
+    .run(enteredAt, id, STUDENT_STAGES.PENDING_LEVEL)
+  db.prepare(`
+    INSERT INTO student_tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      task_type = excluded.task_type,
+      title = excluded.title,
+      status = excluded.status,
+      due_at = excluded.due_at,
+      completed_at = excluded.completed_at,
+      created_at = excluded.created_at,
+      operator = excluded.operator
+  `).run(
+      'task_s_external_001_pending_level',
+      id,
+      STUDENT_STAGES.PENDING_LEVEL,
+      STAGE_META[STUDENT_STAGES.PENDING_LEVEL].taskTitle,
+      'pending',
+      '2026-06-25 15:30',
+      null,
+      enteredAt,
+      '系统'
+  )
+
+  ensureTrackRecord('record_s_external_001_1', id, '家长表示孩子平时接触英语绘本较多，希望系统评估后进入合适班型。', '2026-06-23 12:08', '规划师Ella')
+  ensureTrackRecord('record_s_external_001_2', id, '已预约 6 月 23 日 15:30 到南京校区做英语基础诊断。家长更偏好周末班。', '2026-06-23 20:12', '规划师Ella')
+  ensureTrackRecord('record_s_external_001_3', id, '学生到访后状态放松，听力和互动反应较好；阅读题需要提醒后才能稳定定位关键信息。', '2026-06-24 15:28', '测评老师Lily')
+  ensureTrackRecord('record_s_external_001_4', id, '诊断卷已完成，总分 76/100，建议定级时重点参考 G4 体系课，后续确认阅读和口语提升目标。', '2026-06-24 15:40', '测评老师Lily')
+
+  const corpId = process.env.WECOM_CORP_ID || 'wwed01457450ced6f6'
+  if (!db.prepare('SELECT 1 FROM external_contact_mappings WHERE corp_id = ? AND external_userid = ?').get(corpId, 'debug_external_yizhizhu')) {
+    db.prepare('INSERT INTO external_contact_mappings VALUES (?, ?, ?, ?, ?)').run(
+      corpId,
+      'debug_external_yizhizhu',
+      id,
+      '一只猪',
+      '2026-06-23 21:34'
+    )
+  }
+}
+
+function ensureHistory(id, studentId, fromStage, toStage, reason, operator, changedAt) {
+  if (db.prepare('SELECT 1 FROM student_stage_history WHERE id = ?').get(id)) return
+  db.prepare('INSERT INTO student_stage_history VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+    id, studentId, fromStage, toStage, reason, operator, changedAt
+  )
+}
+
+function ensureTrackRecord(id, studentId, content, time, operator) {
+  if (db.prepare('SELECT 1 FROM track_records WHERE id = ?').get(id)) return
+  db.prepare('INSERT INTO track_records VALUES (?, ?, ?, ?, ?)').run(
+    id, studentId, content, time, operator
+  )
 }
 
 seed()
