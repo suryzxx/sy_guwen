@@ -63,6 +63,33 @@
             </div>
           </article>
         </div>
+
+        <section v-if="showManualFallback" class="wecom-manual-fallback">
+          <div class="panel-header compact">
+            <h3>手动进入学生详情</h3>
+            <span class="muted-text">企微未返回当前客户</span>
+          </div>
+          <label class="manual-student-search">
+            <AppIcon name="search" />
+            <input v-model="studentKeyword" type="search" placeholder="搜索学生姓名、手机号" />
+          </label>
+          <div class="manual-student-list">
+            <button
+              v-for="student in manualStudents"
+              :key="student.id"
+              class="manual-student-row"
+              type="button"
+              @click="router.replace(`/students/${student.id}?from=sidebar-manual`)"
+            >
+              <span>
+                <strong>{{ student.name }}</strong>
+                <small>{{ student.phone || student.school || student.campus }}</small>
+              </span>
+              <AppIcon name="chevron-right" />
+            </button>
+            <p v-if="!manualStudents.length" class="manual-empty">没有匹配的学生</p>
+          </div>
+        </section>
       </section>
     </div>
   </AppShell>
@@ -83,6 +110,7 @@ const externalUserid = ref('')
 const externalError = ref('')
 const debugResult = ref(null)
 const sdkSteps = ref([])
+const studentKeyword = ref('')
 
 onMounted(async () => {
   try {
@@ -141,5 +169,20 @@ const studentMatchText = computed(() => {
       : `可按客户名称自动匹配学生：${student.name}`
   }
   return '没有找到已绑定学生，也没有按客户名称匹配到唯一学生。'
+})
+
+const showManualFallback = computed(() => !loading.value && !externalUserid.value && store.students.length)
+
+const manualStudents = computed(() => {
+  const keyword = studentKeyword.value.trim().toLowerCase()
+  const students = store.students
+  if (!keyword) return students.slice(0, 8)
+  return students
+    .filter((student) => {
+      return student.name.toLowerCase().includes(keyword)
+        || String(student.phone || '').includes(keyword)
+        || String(student.school || '').toLowerCase().includes(keyword)
+    })
+    .slice(0, 12)
 })
 </script>

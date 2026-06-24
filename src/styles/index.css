@@ -2769,3 +2769,82 @@ button.home-card {
 .debug-step.error > span {
   background: #f56c6c;
 }
+
+.wecom-manual-fallback {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+}
+
+.panel-header.compact {
+  margin-bottom: 12px;
+}
+
+.panel-header.compact h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 17px;
+}
+
+.manual-student-search {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 8px;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  color: var(--text-tertiary);
+}
+
+.manual-student-search input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.manual-student-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.manual-student-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: #ffffff;
+  text-align: left;
+}
+
+.manual-student-row strong,
+.manual-student-row small {
+  display: block;
+}
+
+.manual-student-row strong {
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+.manual-student-row small,
+.manual-empty {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.manual-student-row .app-icon {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+}
