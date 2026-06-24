@@ -64,6 +64,7 @@ async function configureWecomSdk(wx) {
   if (!wx.agentConfig) return
   await new Promise((resolve, reject) => {
     wx.agentConfig({
+      beta: true,
       corpid: config.corpId,
       agentid: config.agentId,
       timestamp: config.timestamp,
@@ -79,6 +80,14 @@ async function configureWecomSdk(wx) {
 function invokeExternalContactOnce(wx, params) {
   return new Promise((resolve) => {
     wx.invoke('getCurExternalContact', params, (res) => {
+      resolve(res)
+    })
+  })
+}
+
+function invokeContext(wx) {
+  return new Promise((resolve) => {
+    wx.invoke('getContext', {}, (res) => {
       resolve(res)
     })
   })
@@ -176,6 +185,7 @@ export async function inspectCurrentExternalContact() {
   try {
     await new Promise((resolve, reject) => {
       wx.agentConfig({
+        beta: true,
         corpid: config.corpId,
         agentid: config.agentId,
         timestamp: config.timestamp,
@@ -191,6 +201,18 @@ export async function inspectCurrentExternalContact() {
     pushStep('agent-config', 'wx.agentConfig', 'error', normalizeWecomError(error, 'wx.agentConfig 校验失败'), error)
     return { externalUserid: '', steps }
   }
+
+  const contextResult = await invokeContext(wx)
+  const isSupportedContext = contextResult?.err_msg === 'getContext:ok'
+  pushStep(
+    'get-context',
+    'getContext',
+    isSupportedContext ? 'ok' : 'error',
+    isSupportedContext
+      ? `当前企微入口：${contextResult.entry || '未知'}`
+      : normalizeWecomError(contextResult, '未能识别当前企微入口'),
+    contextResult
+  )
 
   try {
     const invokeResult = await invokeCurrentExternalContact(wx)

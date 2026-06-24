@@ -118,7 +118,7 @@ async function createJsConfig(pageUrl) {
     nonceStr,
     signature: signJsapi(jsapiTicket, nonceStr, timestamp, pageUrl),
     agentSignature: signJsapi(agentTicket, nonceStr, timestamp, pageUrl),
-    jsApiList: ['getCurExternalContact']
+    jsApiList: ['getContext', 'getCurExternalContact']
   }
 }
 
