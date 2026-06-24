@@ -45,6 +45,11 @@ const EXTERNAL_CONTACT_INVOKE_OPTIONS = [
   { label: '客户详情入口', params: { entry: 'contact_profile' } }
 ]
 
+const EXTERNAL_CONTACT_CONTEXT_ENTRIES = new Set([
+  'single_chat_tools',
+  'contact_profile'
+])
+
 async function configureWecomSdk(wx) {
   const config = await http.get('/wecom/js-config', { params: { url: currentSignatureUrl() } })
   await new Promise((resolve, reject) => {
@@ -213,6 +218,20 @@ export async function inspectCurrentExternalContact() {
       : normalizeWecomError(contextResult, '未能识别当前企微入口'),
     contextResult
   )
+  if (isSupportedContext && !EXTERNAL_CONTACT_CONTEXT_ENTRIES.has(contextResult.entry)) {
+    pushStep(
+      'wrong-context',
+      '入口上下文不正确',
+      'error',
+      `当前入口是 ${contextResult.entry || '未知'}，不是客户联系聊天工具栏。请不要从应用主页、工作台或普通网页打开；必须从外部联系人单聊里的客户联系聊天工具栏打开。`,
+      {
+        expected: [...EXTERNAL_CONTACT_CONTEXT_ENTRIES],
+        actual: contextResult.entry,
+        next: '企业微信后台进入 客户与上下游 > 客户联系 > 工具 > 聊天工具，确认该页面配置给客户联系聊天工具栏。'
+      }
+    )
+    return { externalUserid: '', steps }
+  }
 
   try {
     const invokeResult = await invokeCurrentExternalContact(wx)
