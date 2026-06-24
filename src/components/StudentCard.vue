@@ -1,8 +1,10 @@
 <template>
   <article v-if="compactTodo" class="student-card todo-student-card" @click="$emit('select', student)">
-    <div>
+    <img v-if="avatarSrc" class="todo-student-avatar image-avatar" :src="avatarSrc" :alt="`${student.name}头像`" />
+    <span v-else class="todo-student-avatar avatar-fallback">{{ student.name.slice(0, 1) }}</span>
+    <div class="todo-student-copy">
       <strong>{{ student.name }}</strong>
-      <span>{{ student.phone }}</span>
+      <small>{{ student.phone }}</small>
     </div>
     <span class="chevron">
       <AppIcon name="chevron-right" />

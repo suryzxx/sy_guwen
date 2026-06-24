@@ -12,11 +12,19 @@
               {{ student.phone }}
               <AppIcon name="phone" />
             </p>
-            <div class="student-basic-tags">
-              <span>{{ genderText }}</span>
-              <span>{{ student.currentGrade }}</span>
-              <span>{{ student.campus }}</span>
-            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel student-info-panel" :class="{ expanded: showStudentInfo }">
+        <button class="student-info-toggle" type="button" @click="showStudentInfo = !showStudentInfo">
+          <h2>学生信息</h2>
+          <AppIcon :name="showStudentInfo ? 'chevron-up' : 'chevron-down'" />
+        </button>
+        <div v-if="showStudentInfo" class="student-info-grid">
+          <div v-for="item in studentInfoItems" :key="item.label" class="student-info-item">
+            <span>{{ item.label }}：</span>
+            <strong :class="{ tag: item.tag }">{{ item.value }}</strong>
           </div>
         </div>
       </section>
@@ -177,6 +185,7 @@ const store = useWorkbenchStore()
 const showRecordForm = ref(false)
 const showPaperDialog = ref(false)
 const showLevelDialog = ref(false)
+const showStudentInfo = ref(false)
 const recordInput = ref('')
 const selectedPaper = ref('')
 const levelForm = reactive({ year: '2026', semester: '暑', level: 'G1' })
@@ -191,8 +200,28 @@ watch(() => props.studentId, () => load())
 
 const student = computed(() => store.studentById(props.studentId))
 const records = computed(() => store.trackRecords[props.studentId] || [])
-const genderText = computed(() => (student.value?.gender === 'female' ? '女' : '男'))
+const genderText = computed(() => formatGender(student.value?.gender))
 const showAssessment = computed(() => STAGE_META[student.value?.stage]?.group === 'assessment' || Boolean(student.value?.evaluationResult))
+const studentInfoItems = computed(() => {
+  const item = student.value || {}
+  return [
+    { label: '学生ID', value: displayValue(item.id) },
+    { label: '学生姓名', value: displayValue(item.name) },
+    { label: '联系电话', value: displayValue(maskPhone(item.phone)) },
+    { label: '所属校区', value: displayValue(item.campus) },
+    { label: '学习规划师', value: displayValue(item.plannerName || store.user?.name) },
+    { label: '家长服务中心', value: displayValue(item.parentServiceCenter) },
+    { label: '注册渠道', value: displayValue(item.registerChannel || item.sourceChannel) },
+    { label: '获客渠道', value: displayValue(item.acquisitionChannel || item.leadChannel), tag: Boolean(item.acquisitionChannel || item.leadChannel) },
+    { label: '在读年级', value: displayValue(item.currentGrade) },
+    { label: '在读学校', value: displayValue(item.school) },
+    { label: '就读城市', value: displayValue(formatCity(item.city)) },
+    { label: '性别', value: displayValue(genderText.value) },
+    { label: '英文名', value: displayValue(item.englishName) },
+    { label: '学生状态', value: displayValue(stageLabel(item.stage)), tag: Boolean(item.stage) },
+    { label: '注册时间', value: displayValue(item.registeredAt || item.createdAt || item.stageEnteredAt) }
+  ]
+})
 const currentWorkAction = computed(() => {
   switch (student.value?.stage) {
     case STUDENT_STAGES.PENDING_ADD:
@@ -248,6 +277,27 @@ function stageProgressIndex(stage) {
     default:
       return -1
   }
+}
+
+function displayValue(value) {
+  return value === undefined || value === null || value === '' ? '-' : value
+}
+
+function formatGender(gender) {
+  if (gender === 'male') return '男'
+  if (gender === 'female') return '女'
+  return '未知'
+}
+
+function maskPhone(phone) {
+  const digits = String(phone || '')
+  if (digits.length < 7) return digits
+  return `${digits.slice(0, 3)}****${digits.slice(-4)}`
+}
+
+function formatCity(city) {
+  if (!city) return ''
+  return city.endsWith('市') ? city : `${city}市`
 }
 
 async function load() {

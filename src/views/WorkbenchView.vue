@@ -9,8 +9,8 @@
         </button>
         <div class="reminder-grid">
           <button v-for="item in todoStats" :key="item.id" type="button" @click="openWork(item.id)">
-            <span>{{ item.title }}</span>
             <strong>{{ item.count }}</strong>
+            <span>{{ item.title }}</span>
           </button>
         </div>
       </section>
@@ -66,8 +66,8 @@
               :class="{ active: activeWorkId === item.id }"
               @click="openWork(item.id)"
             >
-              <span>{{ item.title }}</span>
               <strong>{{ item.count }}</strong>
+              <span>{{ item.title }}</span>
             </button>
           </div>
         </section>

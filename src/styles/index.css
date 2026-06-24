@@ -400,16 +400,17 @@ a {
 }
 
 .student-detail-page .eyebrow {
-  color: #16845f;
+  color: #07c160;
   font-size: 16px;
 }
 
 .student-detail-page .profile-panel h2,
 .student-detail-page .panel-header h2 {
   color: #172033;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
   letter-spacing: 0.01em;
+  text-align: left;
 }
 
 .student-detail-page .profile-panel p {
@@ -430,27 +431,84 @@ a {
   color: #171717;
 }
 
-.student-detail-page .student-basic-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.student-detail-page .student-basic-tags span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  color: #16845f;
-  background: #e8f6f0;
-  font-size: 13px;
-  font-weight: 700;
-}
-
 .student-detail-page .panel {
   padding: 32px 40px;
+}
+
+.student-detail-page .student-info-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.student-detail-page .student-info-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 50px;
+  padding: 0 40px;
+  border: 0;
+  color: #172033;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.student-detail-page .student-info-toggle h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-align: left;
+}
+
+.student-detail-page .student-info-toggle .app-icon {
+  width: 22px;
+  height: 22px;
+  color: #687386;
+}
+
+.student-detail-page .student-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px 24px;
+  padding: 0 40px 28px;
+}
+
+.student-detail-page .student-info-item {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  color: #687386;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.student-detail-page .student-info-item span {
+  flex: 0 0 auto;
+  color: #8a95a5;
+}
+
+.student-detail-page .student-info-item strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #4b5565;
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-detail-page .student-info-item strong.tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid #8ec5ff;
+  border-radius: 6px;
+  color: #2f80ed;
+  background: #eef7ff;
 }
 
 .student-detail-page .panel-header {
@@ -460,7 +518,7 @@ a {
 .student-detail-page .status-pill {
   min-height: 34px;
   padding: 0 14px;
-  color: #16845f;
+  color: #07c160;
   background: #e8f6f0;
   font-size: 14px;
 }
@@ -517,7 +575,7 @@ a {
   min-height: 42px;
   padding: 0 16px;
   border-radius: 12px;
-  color: #16845f;
+  color: #07c160;
   background: #e8f6f0;
   font-size: 15px;
 }
@@ -574,38 +632,105 @@ a {
   background: #f7f9fc;
 }
 
+.student-detail-page .record-panel {
+  max-height: 400px;
+  overflow: hidden;
+}
+
+.student-detail-page .record-panel .record-list {
+  max-height: 300px;
+  padding-right: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .stage-progress {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, 74px);
   gap: 0;
+  padding: 8px 8px 0;
 }
 
 .stage-progress-item {
   position: relative;
-  display: flex;
+  display: grid;
+  align-content: start;
+  justify-items: center;
   align-items: center;
-  gap: 12px;
-  min-height: 42px;
+  gap: 10px;
+  min-height: 74px;
   color: #8a95a5;
   font-size: 15px;
   font-weight: 700;
+  text-align: center;
 }
 
 .stage-progress-item::before {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 7px;
-  width: 2px;
+  z-index: 0;
   background: #e2e8ee;
   content: "";
 }
 
-.stage-progress-item:first-child::before {
-  top: 21px;
+.stage-progress-item:nth-child(1) {
+  grid-area: 1 / 1;
+}
+
+.stage-progress-item:nth-child(2) {
+  grid-area: 1 / 2;
+}
+
+.stage-progress-item:nth-child(3) {
+  grid-area: 1 / 3;
+}
+
+.stage-progress-item:nth-child(4) {
+  grid-area: 2 / 3;
+}
+
+.stage-progress-item:nth-child(5) {
+  grid-area: 3 / 3;
+}
+
+.stage-progress-item:nth-child(6) {
+  grid-area: 3 / 2;
+}
+
+.stage-progress-item:nth-child(7) {
+  grid-area: 3 / 1;
+}
+
+.stage-progress-item:nth-child(1)::before,
+.stage-progress-item:nth-child(2)::before {
+  top: 7px;
+  left: calc(50% + 8px);
+  width: calc(100% - 16px);
+  height: 2px;
+}
+
+.stage-progress-item:nth-child(3)::before,
+.stage-progress-item:nth-child(4)::before {
+  top: 16px;
+  left: calc(50% - 1px);
+  width: 2px;
+  height: calc(100% - 8px);
+}
+
+.stage-progress-item:nth-child(5)::before,
+.stage-progress-item:nth-child(6)::before {
+  top: 7px;
+  right: calc(50% + 8px);
+  width: calc(100% - 16px);
+  height: 2px;
 }
 
 .stage-progress-item:last-child::before {
-  bottom: 21px;
+  display: none;
+}
+
+.stage-progress-item.completed::before {
+  background: #07c160;
 }
 
 .stage-progress-dot {
@@ -618,18 +743,33 @@ a {
   background: #fff;
 }
 
-.stage-progress-item.completed {
-  color: #16845f;
+.stage-progress-item span:last-child {
+  position: relative;
+  z-index: 1;
+  padding: 0 4px;
+  background: #fff;
 }
 
-.stage-progress-item.completed::before {
-  background: #07c160;
+.stage-progress-item.completed {
+  color: #07c160;
 }
 
 .stage-progress-item.completed .stage-progress-dot {
   border-color: #07c160;
   background: #07c160;
   box-shadow: 0 0 0 4px rgba(7, 193, 96, 0.1);
+}
+
+@media (max-width: 640px) {
+  .stage-progress {
+    grid-template-rows: repeat(3, 68px);
+    padding-inline: 0;
+  }
+
+  .stage-progress-item {
+    min-height: 68px;
+    font-size: 13px;
+  }
 }
 
 .student-detail-page .fixed-action {
@@ -655,7 +795,7 @@ a {
   min-height: 44px;
   border: 0;
   border-radius: 12px;
-  color: #16845f;
+  color: #07c160;
   background: #e8f6f0;
   font-size: 15px;
   font-weight: 700;
@@ -823,39 +963,63 @@ a {
 .todo-student-card {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-3);
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 14px;
   align-items: center;
-  min-height: 86px;
-  padding: 18px 44px 18px 20px;
+  height: 80px;
+  min-height: 80px;
+  padding: 0 56px 0 28px;
+  border-color: #e2e8ee;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(22, 31, 37, 0.02);
   cursor: pointer;
 }
 
-.todo-student-card > div {
+.todo-student-avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: contain;
+  font-size: 18px;
+}
+
+.todo-student-copy {
   display: grid;
   min-width: 0;
-  gap: 8px;
+  gap: 4px;
 }
 
 .todo-student-card strong {
   overflow: hidden;
-  color: var(--color-text);
+  color: #172033;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.todo-student-card span {
-  color: var(--color-muted);
-  font-size: 14px;
+.todo-student-card small {
+  overflow: hidden;
+  color: #687386;
+  font-size: 15px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .todo-student-card .chevron {
   position: absolute;
   top: 50%;
-  right: 16px;
+  right: 28px;
   transform: translateY(-50%);
+}
+
+.todo-student-card .chevron .app-icon {
+  width: 26px;
+  height: 26px;
+  color: #687386;
 }
 
 .student-card-meta {
@@ -2295,6 +2459,18 @@ button.home-card {
     box-shadow: none;
   }
 
+  .todo-student-card {
+    height: 80px;
+    min-height: 80px;
+    padding: 0 52px 0 24px;
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(22, 31, 37, 0.02);
+  }
+
+  .todo-student-card .chevron {
+    right: 28px;
+  }
+
   .search-panel {
     position: static;
   }
@@ -2437,17 +2613,30 @@ button.home-card {
 
   .student-detail-page .profile-panel h2,
   .student-detail-page .panel-header h2 {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .student-detail-page .profile-panel p {
     font-size: 16px;
   }
 
-  .student-detail-page .student-basic-tags span {
-    min-height: 28px;
-    padding: 0 10px;
-    font-size: 13px;
+  .student-detail-page .student-info-panel {
+    padding: 0;
+  }
+
+  .student-detail-page .student-info-toggle {
+    min-height: 48px;
+    padding: 0 20px;
+  }
+
+  .student-detail-page .student-info-toggle h2 {
+    font-size: 18px;
+  }
+
+  .student-detail-page .student-info-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 0 20px 22px;
   }
 
   .student-detail-page .current-task {

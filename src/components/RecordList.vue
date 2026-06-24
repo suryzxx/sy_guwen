@@ -1,5 +1,5 @@
 <template>
-  <section class="panel">
+  <section class="panel record-panel">
     <div class="panel-header">
       <h2>跟进记录</h2>
       <button class="small-button" type="button" @click="$emit('add')">+ 录入</button>
